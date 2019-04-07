@@ -33,3 +33,20 @@ func NewOrder(column string, direction string) *Order {
 		direction: direction,
 	}
 }
+
+type OrderRaw struct {
+	*Order
+	sql string
+}
+
+func (o *OrderRaw) ValueToString() string {
+	return o.sql
+}
+
+func NewOrderRaw(sql string) *OrderRaw {
+
+	return &OrderRaw{
+		sql: sql,
+		Order: NewOrder("", ""),
+	}
+}

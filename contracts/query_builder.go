@@ -38,13 +38,13 @@ type QueryBuilder interface {
 
 	OrWhereNotNull(col string) QueryBuilder
 
-	WhereIn(column string, values []interface{}) QueryBuilder
+	WhereIn(column string, values ...interface{}) QueryBuilder
 
-	OrWhereIn(column string, values []interface{}) QueryBuilder
+	OrWhereIn(column string, values ...interface{}) QueryBuilder
 
-	WhereNotIn(column string, values []interface{}) QueryBuilder
+	WhereNotIn(column string, values ...interface{}) QueryBuilder
 
-	OrWhereNotIn(column string, values []interface{}) QueryBuilder
+	OrWhereNotIn(column string, values ...interface{}) QueryBuilder
 
 	WhereBetween(column string, from interface{}, to interface{}) QueryBuilder
 
@@ -77,6 +77,10 @@ type QueryBuilder interface {
 	GroupBy(args ...string) QueryBuilder
 
 	OrderBy(column string, direction string) QueryBuilder
+
+	OrderByDesc(column string) QueryBuilder
+
+	OrderByRaw(sql string, bindings ...interface{}) QueryBuilder
 
 	Count(column string) (*sql.Rows, error)
 

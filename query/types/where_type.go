@@ -1,5 +1,7 @@
 package types
 
+import "database/contracts"
+
 type WhereType interface {
 	GetLogic() string
 	GetColumn() string
@@ -7,13 +9,15 @@ type WhereType interface {
 	ValueToArray() []interface{}
 }
 
+type WhereQuery interface {
+	GetQuery() contracts.QueryBuilder
+}
+
 type WhereDateType interface {
 	GetDateType() string
 }
 
-type WhereExpressionType interface {
-	ValueToString() string
-}
+type WhereCallback = func(q contracts.QueryBuilder)
 
 type Where struct {
 	logic string
@@ -227,5 +231,47 @@ func NewWhereDate(col string, operator string, value string, dateType string, lo
 		value: value,
 		dateType: dateType,
 		Where: newWhere(col, operator, logic),
+	}
+}
+
+type WhereNested struct {
+	*Where
+	value contracts.QueryBuilder
+}
+
+func (w *WhereNested) GetQuery() contracts.QueryBuilder {
+	return w.value
+}
+
+func (w *WhereNested) ValueToArray() []interface{} {
+	return []interface{}{w.value}
+}
+
+func NewWhereNested(value contracts.QueryBuilder, logic string) *WhereNested {
+
+	return &WhereNested{
+		value: value,
+		Where: newWhere("", "", logic),
+	}
+}
+
+type WhereSub struct {
+	*Where
+	value contracts.QueryBuilder
+}
+
+func (w *WhereSub) GetQuery() contracts.QueryBuilder {
+	return w.value
+}
+
+func (w *WhereSub) ValueToArray() []interface{} {
+	return []interface{}{w.value}
+}
+
+func NewWhereSub(column string, operator string, value contracts.QueryBuilder, logic string) *WhereSub {
+
+	return &WhereSub{
+		value: value,
+		Where: newWhere(column, operator, logic),
 	}
 }

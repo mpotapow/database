@@ -71,14 +71,21 @@ func (b *Builder) From(from string) contracts.QueryBuilder {
 
 func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryBuilder {
 
+	if b.isCallback(args[0]) {
+		return b.whereNested(args[0].(types.WhereCallback), logic)
+	}
+
 	col, value, operator := b.prepareWhereArguments(args...)
 
-	if value == nil {
-		if operator == "=" {
-			return b.WhereNull(col)
-		} else {
-			return b.WhereNotNull(col)
-		}
+	switch v := value.(type) {
+		case nil:
+			if operator == "=" {
+				return b.WhereNull(col)
+			} else {
+				return b.WhereNotNull(col)
+			}
+		case types.WhereCallback:
+			return b.whereSub(col, operator, v, logic)
 	}
 
 	whereType := b.getWhereTypeByValue(col, operator, value, logic)
@@ -122,6 +129,14 @@ func (b *Builder) buildWhereNull(col string, operator string, logic string) cont
 
 func (b *Builder) buildWhereIn(column string, operator string, values []interface{}, logic string) contracts.QueryBuilder {
 
+	if b.isCallback(values[0]) {
+		return b.whereSub(column, operator, values[0].(types.WhereCallback), logic)
+	}
+
+	if b.isSlice(values[0]) {
+		values = values[0].([]interface{})
+	}
+
 	whereType := types.NewWhereIn(column, operator, values, logic)
 	b.Wheres = append(b.Wheres, whereType)
 
@@ -161,6 +176,18 @@ func (b *Builder) buildWhereDate(dateType string, format string, logic string, a
 	b.Wheres = append(b.Wheres, whereType)
 
 	b.addBinding(value, "where")
+
+	return b
+}
+
+func (b *Builder) buildOrderByRaw(sql string, binding []interface{}) contracts.QueryBuilder {
+
+	orderType := types.NewOrderRaw(sql)
+	b.Orders = append(b.Orders, orderType)
+
+	for _, v := range binding {
+		b.addBinding(v, "order")
+	}
 
 	return b
 }
@@ -215,22 +242,22 @@ func (b *Builder) OrWhereNotNull(col string) contracts.QueryBuilder {
 	return b.buildWhereNull(col, "!=", "or")
 }
 
-func (b *Builder) WhereIn(column string, values []interface{}) contracts.QueryBuilder {
+func (b *Builder) WhereIn(column string, values ...interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereIn(column, "in", values, "and")
 }
 
-func (b *Builder) OrWhereIn(column string, values []interface{}) contracts.QueryBuilder {
+func (b *Builder) OrWhereIn(column string, values ...interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereIn(column, "in", values, "or")
 }
 
-func (b *Builder) WhereNotIn(column string, values []interface{}) contracts.QueryBuilder {
+func (b *Builder) WhereNotIn(column string, values ...interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereIn(column, "not in", values, "and")
 }
 
-func (b *Builder) OrWhereNotIn(column string, values []interface{}) contracts.QueryBuilder {
+func (b *Builder) OrWhereNotIn(column string, values ...interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereIn(column, "not in", values, "or")
 }
@@ -305,6 +332,42 @@ func (b *Builder) OrWhereYear(args ...interface{}) contracts.QueryBuilder {
 	return b.buildWhereDate("year", "2006", "or", args...)
 }
 
+func (b *Builder) whereNested(callback func(q contracts.QueryBuilder), logic string) contracts.QueryBuilder {
+
+	newQuery := b.forNestedWhere()
+	callback(newQuery)
+	query := newQuery.(*Builder)
+
+	if len(query.Wheres) > 0 {
+		b.Wheres = append(b.Wheres, types.NewWhereNested(query, logic))
+		for _, v := range query.getRawBindings()["where"] {
+			b.addBinding(v, "where")
+		}
+	}
+
+	return b
+}
+
+func (b *Builder) whereSub(
+	column string,
+	operator string,
+	callback func(q contracts.QueryBuilder),
+	logic string,
+) contracts.QueryBuilder {
+
+	newQuery := b.forSubQuery()
+	callback(newQuery)
+	query := newQuery.(*Builder)
+
+	b.Wheres = append(b.Wheres, types.NewWhereSub(column, operator, query, logic))
+
+	for _, v := range query.getBindingsForSql() {
+		b.addBinding(v, "where")
+	}
+
+	return b
+}
+
 func (b *Builder) GroupBy(args ...string) contracts.QueryBuilder {
 
 	b.Groups = append(b.Groups, args...)
@@ -317,6 +380,16 @@ func (b *Builder) OrderBy(column string, direction string) contracts.QueryBuilde
 	b.Orders = append(b.Orders, types.NewOrder(column, direction))
 
 	return b
+}
+
+func (b *Builder) OrderByDesc(column string) contracts.QueryBuilder {
+
+	return b.OrderBy(column, "desc")
+}
+
+func (b *Builder) OrderByRaw(sql string, bindings ...interface{}) contracts.QueryBuilder {
+
+	return b.buildOrderByRaw(sql, bindings)
 }
 
 func (b *Builder) Limit(n int) contracts.QueryBuilder {
@@ -389,6 +462,21 @@ func (b *Builder) ToSql() string {
 	return b.grammar.CompileSelect(b)
 }
 
+func (b *Builder) isCallback(arg interface{}) bool {
+
+	_, ok := arg.(types.WhereCallback)
+	return ok
+}
+
+func (b *Builder) isSlice(arg interface{}) bool {
+	switch arg.(type) {
+		case []interface{}:
+			return true
+		default:
+			return false
+	}
+}
+
 func (b *Builder) prepareWhereArguments(args ...interface{}) (string, interface{}, string) {
 
 	if len(args) == 2 {
@@ -415,6 +503,10 @@ func (b *Builder) getWhereTypeByValue(col string, operator string, value interfa
 	}
 }
 
+func (b *Builder) getRawBindings() map[string][]interface{} {
+	return b.bindings
+}
+
 func (b *Builder) addBinding(value interface{}, bindingType string) {
 
 	if value != nil {
@@ -434,4 +526,19 @@ func (b *Builder) getBindingsForSql() []interface{} {
 	}
 
 	return res
+}
+
+func (b *Builder) forNestedWhere() contracts.QueryBuilder {
+
+	return b.newQuery().From(b.Table)
+}
+
+func (b *Builder) forSubQuery() contracts.QueryBuilder {
+
+	return b.newQuery()
+}
+
+func (b *Builder) newQuery() contracts.QueryBuilder {
+
+	return NewBuilder(b.connection, b.grammar)
 }

@@ -141,12 +141,12 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereColumn:
-				where := w.(types.WhereExpressionType)
+				where := w.(types.ExpressionType)
 				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.wrap(where.ValueToString()))
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereRaw:
-				where := w.(types.WhereExpressionType)
+				where := w.(types.ExpressionType)
 				res = append(res, w.GetLogic() + " " + where.ValueToString())
 				break
 			case *types.WhereBetween:
@@ -163,6 +163,16 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 					g.parameterize(w, ", "),
 				)
 				res = append(res, w.GetLogic() + " " + condition)
+				break
+			case *types.WhereNested:
+				builder := g.getQueryByWhere(w)
+				str := g.compileWhere(builder)
+				res = append(res, w.GetLogic() + " (" + str[6:] + ")")
+				break
+			case *types.WhereSub:
+				builder := g.getQueryByWhere(w)
+				selectRaw := g.CompileSelect(builder)
+				res = append(res, g.wrap(w.GetColumn()) + " " + w.GetOperator() + " (" + selectRaw + ")")
 				break
 		}
 	}
@@ -192,7 +202,12 @@ func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {
 
 	orders := make([]string, 0)
 	for _, o := range queryBuilder.Orders {
-		orders = append(orders, g.wrap(o.GetColumn()) + " " + o.GetDirection())
+		if g.isExpression(o) {
+			orderExpr := o.(types.ExpressionType)
+			orders = append(orders, orderExpr.ValueToString())
+		} else {
+			orders = append(orders, g.wrap(o.GetColumn()) + " " + o.GetDirection())
+		}
 	}
 
 	return "order by " + strings.Join(orders, ", ")
@@ -239,7 +254,7 @@ func (g *Grammar) parameterize(where types.WhereType, sep string) string {
 
 	res := make([]string, 0)
 	if g.isExpression(where) {
-		var exprArg = where.(types.WhereExpressionType)
+		var exprArg = where.(types.ExpressionType)
 		res = append(res, exprArg.ValueToString())
 	} else {
 		for _, _ = range where.ValueToArray() {
@@ -250,10 +265,18 @@ func (g *Grammar) parameterize(where types.WhereType, sep string) string {
 	return strings.Join(res, sep)
 }
 
-func (g *Grammar) isExpression(where types.WhereType) bool {
+func (g *Grammar) isExpression(where interface{}) bool {
 
-	 _, ok := where.(types.WhereExpressionType)
+	 _, ok := where.(types.ExpressionType)
 	 return ok
+}
+
+func (g *Grammar) getQueryByWhere(w types.WhereType) *query.Builder {
+
+	where := w.(types.WhereQuery)
+	queryBuilder := where.GetQuery()
+
+	return queryBuilder.(*query.Builder)
 }
 
 func (g *Grammar) filter(iterator []string, f func(string) bool) []string {

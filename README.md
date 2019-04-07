@@ -27,7 +27,6 @@ is under development...
 
 ## Features
 - Sub select
-- Where callback in argument
 - Having
 - Joins
 - insert query
