@@ -132,17 +132,36 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 	for _, w := range queryBuilder.Wheres {
 		switch w.(type) {
 			default:
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w))
+				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereIn:
-				value := "(" + g.parameterize(w) + ")"
+				value := "(" + g.parameterize(w, ", ") + ")"
 				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), value)
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereColumn:
 				where := w.(types.WhereExpressionType)
 				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.wrap(where.ValueToString()))
+				res = append(res, w.GetLogic() + " " + condition)
+				break
+			case *types.WhereRaw:
+				where := w.(types.WhereExpressionType)
+				res = append(res, w.GetLogic() + " " + where.ValueToString())
+				break
+			case *types.WhereBetween:
+				value := g.parameterize(w, " and ")
+				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), value)
+				res = append(res, w.GetLogic() + " " + condition)
+				break
+			case *types.WhereDate:
+				where := w.(types.WhereDateType)
+				condition := fmt.Sprintf("%v(%v) %v %v",
+					where.GetDateType(),
+					g.wrap(w.GetColumn()),
+					w.GetOperator(),
+					g.parameterize(w, ", "),
+				)
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 		}
@@ -216,21 +235,19 @@ func (g *Grammar) columnize(columns []string) string  {
 	return strings.Join(columns, ", ")
 }
 
-func (g *Grammar) parameterize(args ...types.WhereType) string {
+func (g *Grammar) parameterize(where types.WhereType, sep string) string {
 
 	res := make([]string, 0)
-	for _, arg := range args {
-		if g.isExpression(arg) {
-			var exprArg = arg.(types.WhereExpressionType)
-			res = append(res, exprArg.ValueToString())
-		} else {
-			for _, _ = range arg.ValueToArray() {
-				res = append(res, g.parametrizeSymbol)
-			}
+	if g.isExpression(where) {
+		var exprArg = where.(types.WhereExpressionType)
+		res = append(res, exprArg.ValueToString())
+	} else {
+		for _, _ = range where.ValueToArray() {
+			res = append(res, g.parametrizeSymbol)
 		}
 	}
 
-	return strings.Join(res, ", ")
+	return strings.Join(res, sep)
 }
 
 func (g *Grammar) isExpression(where types.WhereType) bool {

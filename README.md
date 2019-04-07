@@ -1,15 +1,41 @@
 # go-sql-builder
 Beautiful sql query builder. Inspired by laravel
 
+## Configurate
+is under development...
+
+## Select
+is under development...
+
+## Joins
+is under development...
+
+## Where Clauses
+is under development...
+
+## Ordering, Grouping, Limit, & Offset
+is under development...
+
+## Inserts
+is under development...
+
+## Updates
+is under development...
+
+## Deletes
 is under development...
 
 ## Features
-- More where conditions
+- Sub select
+- Where callback in argument
+- Having
 - Joins
-- create query
+- insert query
 - update query
 - delete query
 - Transaction
-- Database schema
+- Locking
+- Database schemas
+- Master/Slave configuration
 - PostgreSql driver
 - SQLite driver

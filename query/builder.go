@@ -4,6 +4,7 @@ import (
 	"database/contracts"
 	"database/query/types"
 	"database/sql"
+	"time"
 )
 
 type Builder struct {
@@ -70,13 +71,7 @@ func (b *Builder) From(from string) contracts.QueryBuilder {
 
 func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryBuilder {
 
-	var (
-		col string
-		operator string
-		value interface{}
-	)
-
-	col, value, operator = b.prepareWhereArguments(args...)
+	col, value, operator := b.prepareWhereArguments(args...)
 
 	if value == nil {
 		if operator == "=" {
@@ -96,17 +91,23 @@ func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryB
 
 func (b *Builder) buildWhereColumn(logic string, args ...interface{}) contracts.QueryBuilder {
 
-	var (
-		col string
-		operator string
-		col2 interface{}
-	)
-
-	col, col2, operator = b.prepareWhereArguments(args...)
+	col, col2, operator := b.prepareWhereArguments(args...)
 	value := col2.(string)
 
 	whereType := types.NewWhereColumn(col, operator, value, logic)
 	b.Wheres = append(b.Wheres, whereType)
+
+	return b
+}
+
+func (b *Builder) buildWhereRaw(condition string, bindings []interface{}, logic string) contracts.QueryBuilder {
+
+	whereType := types.NewWhereRaw(condition, logic)
+	b.Wheres = append(b.Wheres, whereType)
+
+	for _, v := range bindings {
+		b.addBinding(v, "where")
+	}
 
 	return b
 }
@@ -124,9 +125,42 @@ func (b *Builder) buildWhereIn(column string, operator string, values []interfac
 	whereType := types.NewWhereIn(column, operator, values, logic)
 	b.Wheres = append(b.Wheres, whereType)
 
-	for v := range values {
+	for _, v := range values {
 		b.addBinding(v, "where")
 	}
+
+	return b
+}
+
+func (b *Builder) buildWhereBetween(column string, operator string, values []interface{}, logic string) contracts.QueryBuilder {
+
+	whereType := types.NewWhereBetween(column, operator, values, logic)
+	b.Wheres = append(b.Wheres, whereType)
+
+	for _, v := range values {
+		b.addBinding(v, "where")
+	}
+
+	return b
+}
+
+func (b *Builder) buildWhereDate(dateType string, format string, logic string, args ...interface{}) contracts.QueryBuilder {
+
+	col, value, operator := b.prepareWhereArguments(args...)
+
+	switch v := value.(type) {
+		case string:
+			value = v
+			break
+		case time.Time:
+			value = v.Format(format)
+			break
+	}
+
+	whereType := types.NewWhereDate(col, operator, value.(string), dateType, logic)
+	b.Wheres = append(b.Wheres, whereType)
+
+	b.addBinding(value, "where")
 
 	return b
 }
@@ -149,6 +183,16 @@ func (b *Builder) WhereColumn(args ...interface{}) contracts.QueryBuilder {
 func (b *Builder) OrWhereColumn(args ...interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereColumn("or", args...)
+}
+
+func (b *Builder) WhereRaw(condition string, bindings ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereRaw(condition, bindings, "and")
+}
+
+func (b *Builder) OrWhereRaw(condition string, bindings ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereRaw(condition, bindings, "or")
 }
 
 func (b *Builder) WhereNull(col string) contracts.QueryBuilder {
@@ -189,6 +233,76 @@ func (b *Builder) WhereNotIn(column string, values []interface{}) contracts.Quer
 func (b *Builder) OrWhereNotIn(column string, values []interface{}) contracts.QueryBuilder {
 
 	return b.buildWhereIn(column, "not in", values, "or")
+}
+
+func (b *Builder) WhereBetween(column string, from interface{}, to interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereBetween(column, "between", []interface{}{from, to}, "and")
+}
+
+func (b *Builder) OrWhereBetween(column string, from interface{}, to interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereBetween(column, "between", []interface{}{from, to}, "or")
+}
+
+func (b *Builder) WhereNotBetween(column string, from interface{}, to interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereBetween(column, "not between", []interface{}{from, to}, "and")
+}
+
+func (b *Builder) OrWhereNotBetween(column string, from interface{}, to interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereBetween(column, "not between", []interface{}{from, to}, "or")
+}
+
+func (b *Builder) WhereDate(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("date",  "2006-01-02", "and", args...)
+}
+
+func (b *Builder) OrWhereDate(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("date", "2006-01-02", "or", args...)
+}
+
+func (b *Builder) WhereTime(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("time", "15:04:05", "and", args...)
+}
+
+func (b *Builder) OrWhereTime(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("time", "15:04:05", "or", args...)
+}
+
+func (b *Builder) WhereDay(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("day", "02", "and", args...)
+}
+
+func (b *Builder) OrWhereDay(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("day", "02", "or", args...)
+}
+
+func (b *Builder) WhereMonth(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("month", "01", "and", args...)
+}
+
+func (b *Builder) OrWhereMonth(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("month", "01", "or", args...)
+}
+
+func (b *Builder) WhereYear(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("year", "2006", "and", args...)
+}
+
+func (b *Builder) OrWhereYear(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildWhereDate("year", "2006", "or", args...)
 }
 
 func (b *Builder) GroupBy(args ...string) contracts.QueryBuilder {
@@ -303,7 +417,9 @@ func (b *Builder) getWhereTypeByValue(col string, operator string, value interfa
 
 func (b *Builder) addBinding(value interface{}, bindingType string) {
 
-	b.bindings[bindingType] = append(b.bindings[bindingType], value)
+	if value != nil {
+		b.bindings[bindingType] = append(b.bindings[bindingType], value)
+	}
 }
 
 func (b *Builder) getBindingsForSql() []interface{} {

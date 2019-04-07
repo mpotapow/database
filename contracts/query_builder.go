@@ -26,6 +26,10 @@ type QueryBuilder interface {
 
 	OrWhereColumn(args ...interface{}) QueryBuilder
 
+	WhereRaw(condition string, bindings ...interface{}) QueryBuilder
+
+	OrWhereRaw(condition string, bindings ...interface{}) QueryBuilder
+
 	WhereNull(col string) QueryBuilder
 
 	OrWhereNull(col string) QueryBuilder
@@ -41,6 +45,34 @@ type QueryBuilder interface {
 	WhereNotIn(column string, values []interface{}) QueryBuilder
 
 	OrWhereNotIn(column string, values []interface{}) QueryBuilder
+
+	WhereBetween(column string, from interface{}, to interface{}) QueryBuilder
+
+	OrWhereBetween(column string, from interface{}, to interface{}) QueryBuilder
+
+	WhereNotBetween(column string, from interface{}, to interface{}) QueryBuilder
+
+	OrWhereNotBetween(column string, from interface{}, to interface{}) QueryBuilder
+
+	WhereDate(args ...interface{}) QueryBuilder
+
+	OrWhereDate(args ...interface{}) QueryBuilder
+
+	WhereTime(args ...interface{}) QueryBuilder
+
+	OrWhereTime(args ...interface{}) QueryBuilder
+
+	WhereDay(args ...interface{}) QueryBuilder
+
+	OrWhereDay(args ...interface{}) QueryBuilder
+
+	WhereMonth(args ...interface{}) QueryBuilder
+
+	OrWhereMonth(args ...interface{}) QueryBuilder
+
+	WhereYear(args ...interface{}) QueryBuilder
+
+	OrWhereYear(args ...interface{}) QueryBuilder
 
 	GroupBy(args ...string) QueryBuilder
 

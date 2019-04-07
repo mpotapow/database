@@ -7,6 +7,10 @@ type WhereType interface {
 	ValueToArray() []interface{}
 }
 
+type WhereDateType interface {
+	GetDateType() string
+}
+
 type WhereExpressionType interface {
 	ValueToString() string
 }
@@ -54,6 +58,26 @@ func NewWhereColumn(col string, operator string, value string, logic string) *Wh
 	return &WhereColumn{
 		value: value,
 		Where: newWhere(col, operator, logic),
+	}
+}
+
+type WhereRaw struct {
+	*Where
+	value string
+}
+
+func (w *WhereRaw) ValueToArray() []interface{} {
+	return []interface{}{w.value}
+}
+
+func (w *WhereRaw) ValueToString() string {
+	return w.value
+}
+
+func NewWhereRaw(condition string, logic string) *WhereRaw {
+	return &WhereRaw{
+		value: condition,
+		Where: newWhere("", "", logic),
 	}
 }
 
@@ -151,17 +175,57 @@ func NewWhereNull(col string, operator string, logic string) *WhereNull {
 
 type WhereIn struct {
 	*Where
-	values []interface{}
+	value []interface{}
 }
 
 func (w *WhereIn) ValueToArray() []interface{} {
-	return w.values
+	return w.value
 }
 
-func NewWhereIn(col string, operator string, values []interface{}, logic string) *WhereIn {
+func NewWhereIn(col string, operator string, value []interface{}, logic string) *WhereIn {
 
 	return &WhereIn{
-		values: values,
+		value: value,
+		Where: newWhere(col, operator, logic),
+	}
+}
+
+type WhereBetween struct {
+	*Where
+	value []interface{}
+}
+
+func (w *WhereBetween) ValueToArray() []interface{} {
+	return w.value
+}
+
+func NewWhereBetween(col string, operator string, value []interface{}, logic string) *WhereBetween {
+
+	return &WhereBetween{
+		value: value,
+		Where: newWhere(col, operator, logic),
+	}
+}
+
+type WhereDate struct {
+	*Where
+	value string
+	dateType string
+}
+
+func (w *WhereDate) ValueToArray() []interface{} {
+	return []interface{}{w.value}
+}
+
+func (w *WhereDate) GetDateType() string {
+	return w.dateType
+}
+
+func NewWhereDate(col string, operator string, value string, dateType string, logic string) *WhereDate {
+
+	return &WhereDate{
+		value: value,
+		dateType: dateType,
 		Where: newWhere(col, operator, logic),
 	}
 }
