@@ -3,6 +3,26 @@ Beautiful sql query builder. Inspired by laravel
 
 ## Configurate
 is under development...
+````json
+{
+  "default": "mysql",
+  "connections": {
+    "mysql": {
+      "driver": "mysql",
+      "host": "localhost",
+      "port": "3306",
+      "database": "example",
+      "password": "guest",
+      "username": "guest",
+
+      "strict": true,
+      "timezone": "",
+      "charset": "utf8mb4",
+      "collation": "utf8mb4_unicode_ci"
+    }
+  }
+}
+````
 
 ## Select
 is under development...
@@ -27,7 +47,6 @@ is under development...
 
 ## Features
 - Sub select
-- Having
 - Joins
 - insert query
 - update query

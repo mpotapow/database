@@ -191,7 +191,25 @@ func (g *Grammar) compileGroups(queryBuilder *query.Builder) string {
 
 func (g *Grammar) compileHavings(queryBuilder *query.Builder) string {
 
-	return ""
+	if len(queryBuilder.Havings) <= 0 {
+		return ""
+	}
+
+	res := make([]string, 0)
+	for _, w := range queryBuilder.Havings {
+		switch w.(type) {
+			default:
+				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
+				res = append(res, w.GetLogic() + " " + condition)
+				break
+			case *types.WhereRaw:
+				where := w.(types.ExpressionType)
+				res = append(res, w.GetLogic() + " " + where.ValueToString())
+				break
+		}
+	}
+
+	return "having " + g.removeLeadingBoolean(strings.Join(res, " "))
 }
 
 func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {

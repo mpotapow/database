@@ -18,7 +18,7 @@ type Builder struct {
 	Orders []types.OrderType
 	Wheres []types.WhereType
 	Groups []string
-	Havings []string
+	Havings []types.WhereType
 	Columns []types.SelectType
 
 	bindings map[string][]interface{}
@@ -75,7 +75,7 @@ func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryB
 		return b.whereNested(args[0].(types.WhereCallback), logic)
 	}
 
-	col, value, operator := b.prepareWhereArguments(args...)
+	col, value, operator := b.prepareArguments(args...)
 
 	switch v := value.(type) {
 		case nil:
@@ -98,7 +98,7 @@ func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryB
 
 func (b *Builder) buildWhereColumn(logic string, args ...interface{}) contracts.QueryBuilder {
 
-	col, col2, operator := b.prepareWhereArguments(args...)
+	col, col2, operator := b.prepareArguments(args...)
 	value := col2.(string)
 
 	whereType := types.NewWhereColumn(col, operator, value, logic)
@@ -161,7 +161,7 @@ func (b *Builder) buildWhereBetween(column string, operator string, values []int
 
 func (b *Builder) buildWhereDate(dateType string, format string, logic string, args ...interface{}) contracts.QueryBuilder {
 
-	col, value, operator := b.prepareWhereArguments(args...)
+	col, value, operator := b.prepareArguments(args...)
 
 	switch v := value.(type) {
 		case string:
@@ -176,6 +176,30 @@ func (b *Builder) buildWhereDate(dateType string, format string, logic string, a
 	b.Wheres = append(b.Wheres, whereType)
 
 	b.addBinding(value, "where")
+
+	return b
+}
+
+func (b *Builder) buildHaving(logic string, args ...interface{}) contracts.QueryBuilder {
+
+	col, value, operator := b.prepareArguments(args...)
+
+	whereType := b.getWhereTypeByValue(col, operator, value, logic)
+
+	b.Havings = append(b.Havings, whereType)
+	b.addBinding(value, "having")
+
+	return b
+}
+
+func (b *Builder) buildHavingRaw(condition string, bindings []interface{}, logic string) contracts.QueryBuilder {
+
+	whereType := types.NewWhereRaw(condition, logic)
+	b.Havings = append(b.Havings, whereType)
+
+	for _, v := range bindings {
+		b.addBinding(v, "having")
+	}
 
 	return b
 }
@@ -375,6 +399,26 @@ func (b *Builder) GroupBy(args ...string) contracts.QueryBuilder {
 	return b
 }
 
+func (b *Builder) Having(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildHaving("and", args...)
+}
+
+func (b *Builder) OrHaving(args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildHaving("or", args...)
+}
+
+func (b *Builder) HavingRaw(condition string, bindings ...interface{}) contracts.QueryBuilder {
+
+	return b.buildHavingRaw(condition, bindings, "and")
+}
+
+func (b *Builder) OrHavingRaw(condition string, bindings ...interface{}) contracts.QueryBuilder {
+
+	return b.buildHavingRaw(condition, bindings, "or")
+}
+
 func (b *Builder) OrderBy(column string, direction string) contracts.QueryBuilder {
 
 	b.Orders = append(b.Orders, types.NewOrder(column, direction))
@@ -477,7 +521,7 @@ func (b *Builder) isSlice(arg interface{}) bool {
 	}
 }
 
-func (b *Builder) prepareWhereArguments(args ...interface{}) (string, interface{}, string) {
+func (b *Builder) prepareArguments(args ...interface{}) (string, interface{}, string) {
 
 	if len(args) == 2 {
 		return args[0].(string), args[1], "="

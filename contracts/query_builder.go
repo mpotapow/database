@@ -76,6 +76,14 @@ type QueryBuilder interface {
 
 	GroupBy(args ...string) QueryBuilder
 
+	Having(args ...interface{}) QueryBuilder
+
+	OrHaving(args ...interface{}) QueryBuilder
+
+	HavingRaw(condition string, bindings ...interface{}) QueryBuilder
+
+	OrHavingRaw(condition string, bindings ...interface{}) QueryBuilder
+
 	OrderBy(column string, direction string) QueryBuilder
 
 	OrderByDesc(column string) QueryBuilder
