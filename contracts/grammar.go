@@ -3,4 +3,6 @@ package contracts
 type Grammar interface {
 
 	CompileSelect(b QueryBuilder) string
+
+	Wrap(v string) string
 }

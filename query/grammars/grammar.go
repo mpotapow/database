@@ -87,7 +87,7 @@ func (g *Grammar) compileAggregate(queryBuilder *query.Builder) string {
 
 	return fmt.Sprintf("select %s(%s) as aggregate",
 		queryBuilder.Aggregate.GetFunction(),
-		g.wrap(queryBuilder.Aggregate.GetColumns()),
+		g.Wrap(queryBuilder.Aggregate.GetColumns()),
 	)
 }
 
@@ -101,7 +101,7 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 	for _, s := range queryBuilder.Columns {
 		switch v := s.(type) {
 			case *types.SelectString:
-				res = append(res, g.wrap(v.ToString()))
+				res = append(res, g.Wrap(v.ToString()))
 				break
 			case *types.SelectRawString:
 				res = append(res, v.ToString())
@@ -114,7 +114,7 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 
 func (g *Grammar) compileFrom(queryBuilder *query.Builder) string {
 
-	return "from " + g.wrap(queryBuilder.Table)
+	return "from " + g.Wrap(queryBuilder.Table)
 }
 
 func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
@@ -132,17 +132,17 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 	for _, w := range queryBuilder.Wheres {
 		switch w.(type) {
 			default:
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
+				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereIn:
 				value := "(" + g.parameterize(w, ", ") + ")"
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), value)
+				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereColumn:
 				where := w.(types.ExpressionType)
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.wrap(where.ValueToString()))
+				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.Wrap(where.ValueToString()))
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereRaw:
@@ -151,14 +151,14 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 				break
 			case *types.WhereBetween:
 				value := g.parameterize(w, " and ")
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), value)
+				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereDate:
 				where := w.(types.WhereDateType)
 				condition := fmt.Sprintf("%v(%v) %v %v",
 					where.GetDateType(),
-					g.wrap(w.GetColumn()),
+					g.Wrap(w.GetColumn()),
 					w.GetOperator(),
 					g.parameterize(w, ", "),
 				)
@@ -172,7 +172,7 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 			case *types.WhereSub:
 				builder := g.getQueryByWhere(w)
 				selectRaw := g.CompileSelect(builder)
-				res = append(res, g.wrap(w.GetColumn()) + " " + w.GetOperator() + " (" + selectRaw + ")")
+				res = append(res, g.Wrap(w.GetColumn()) + " " + w.GetOperator() + " (" + selectRaw + ")")
 				break
 		}
 	}
@@ -199,7 +199,7 @@ func (g *Grammar) compileHavings(queryBuilder *query.Builder) string {
 	for _, w := range queryBuilder.Havings {
 		switch w.(type) {
 			default:
-				condition := fmt.Sprintf("%v %v %v", g.wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
+				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
 				res = append(res, w.GetLogic() + " " + condition)
 				break
 			case *types.WhereRaw:
@@ -224,7 +224,7 @@ func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {
 			orderExpr := o.(types.ExpressionType)
 			orders = append(orders, orderExpr.ValueToString())
 		} else {
-			orders = append(orders, g.wrap(o.GetColumn()) + " " + o.GetDirection())
+			orders = append(orders, g.Wrap(o.GetColumn()) + " " + o.GetDirection())
 		}
 	}
 
@@ -262,7 +262,7 @@ func (g *Grammar) compileLock(queryBuilder *query.Builder) string {
 func (g *Grammar) columnize(columns []string) string  {
 
 	for i, v := range columns {
-		columns[i] = g.wrap(v)
+		columns[i] = g.Wrap(v)
 	}
 
 	return strings.Join(columns, ", ")
@@ -324,7 +324,7 @@ func (g *Grammar) removeLeadingBoolean(query string) string {
 	return query
 }
 
-func (g *Grammar) wrap(v string) string {
+func (g *Grammar) Wrap(v string) string {
 
 	if v == "*" {
 		return v

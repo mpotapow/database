@@ -46,14 +46,15 @@ is under development...
 is under development...
 
 ## Features
-- Sub select
+- Sub from
 - Joins
 - insert query
 - update query
 - delete query
 - Transaction
 - Locking
-- Database schemas
+- Support json
+- Database schema
 - Master/Slave configuration
 - PostgreSql driver
 - SQLite driver

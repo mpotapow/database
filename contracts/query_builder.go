@@ -18,6 +18,8 @@ type QueryBuilder interface {
 
 	SelectRaw(args ...string) QueryBuilder
 
+	SelectSub(query interface{}, as string) QueryBuilder
+
 	Where(param ...interface{}) QueryBuilder
 
 	OrWhere(param ...interface{}) QueryBuilder

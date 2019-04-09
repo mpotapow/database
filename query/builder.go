@@ -62,6 +62,46 @@ func (b *Builder) SelectRaw(args ...string) contracts.QueryBuilder {
 	return b
 }
 
+func (b *Builder) SelectSub(query interface{}, as string) contracts.QueryBuilder {
+
+	subQuery, bindings := b.createSub(query)
+
+	subSelect := "(" + subQuery + ") as " + b.grammar.Wrap(as)
+	b.Columns = append(b.Columns, types.NewSelectRawString(subSelect))
+
+	for _, v := range bindings {
+		b.addBinding(v, "select")
+	}
+
+	return b
+}
+
+func (b *Builder) createSub(query interface{}) (string, []interface{}) {
+
+	if b.isCallback(query) {
+
+		newQuery := b.forSubQuery()
+		query.(types.WhereCallback)(newQuery)
+
+		query = newQuery.(*Builder)
+	}
+
+	return b.parseSub(query)
+}
+
+func (b *Builder) parseSub(query interface{}) (string, []interface{}) {
+
+	switch v := query.(type) {
+		case string:
+			return v, []interface{}{}
+		case *Builder:
+			return v.ToSql(), v.getBindingsForSql()
+		default:
+			panic("Illegal sub query")
+
+	}
+}
+
 func (b *Builder) From(from string) contracts.QueryBuilder {
 
 	b.Table = from
