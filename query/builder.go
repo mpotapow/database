@@ -9,7 +9,7 @@ import (
 
 type Builder struct {
 
-	Table string
+	Table types.FromType
 
 	RowLimit int
 	RowOffset int
@@ -53,10 +53,15 @@ func (b *Builder) Select(args ...string) contracts.QueryBuilder {
 	return b
 }
 
-func (b *Builder) SelectRaw(args ...string) contracts.QueryBuilder {
+func (b *Builder) SelectRaw(args ...interface{}) contracts.QueryBuilder {
 
-	for _, arg := range args {
-		b.Columns = append(b.Columns, types.NewSelectRawString(arg))
+	selectRaw := args[0].(string)
+	b.Columns = append(b.Columns, types.NewSelectRawString(selectRaw))
+
+	if len(args) > 1 {
+		for _, v := range args[1:] {
+			b.addBinding(v, "select")
+		}
 	}
 
 	return b
@@ -104,7 +109,35 @@ func (b *Builder) parseSub(query interface{}) (string, []interface{}) {
 
 func (b *Builder) From(from string) contracts.QueryBuilder {
 
-	b.Table = from
+	b.Table = types.NewFromString(from)
+
+	return b
+}
+
+func (b *Builder) FromRaw(from ...interface{}) contracts.QueryBuilder {
+
+	fromRaw := from[0].(string)
+	b.Table = types.NewFromRawString(fromRaw)
+
+	if len(from) > 1 {
+		for _, v := range from[1:] {
+			b.addBinding(v, "from")
+		}
+	}
+
+	return b
+}
+
+func (b *Builder) FromSub(query interface{}, as string) contracts.QueryBuilder {
+
+	subQuery, bindings := b.createSub(query)
+
+	subSelect := "(" + subQuery + ") as " + b.grammar.Wrap(as)
+	b.Table = types.NewFromRawString(subSelect)
+
+	for _, v := range bindings {
+		b.addBinding(v, "from")
+	}
 
 	return b
 }
@@ -614,7 +647,7 @@ func (b *Builder) getBindingsForSql() []interface{} {
 
 func (b *Builder) forNestedWhere() contracts.QueryBuilder {
 
-	return b.newQuery().From(b.Table)
+	return b.newQuery().From(b.Table.ToString())
 }
 
 func (b *Builder) forSubQuery() contracts.QueryBuilder {

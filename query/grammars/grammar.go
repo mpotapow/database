@@ -114,7 +114,17 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 
 func (g *Grammar) compileFrom(queryBuilder *query.Builder) string {
 
-	return "from " + g.Wrap(queryBuilder.Table)
+	var from string
+	switch v := queryBuilder.Table.(type) {
+		case *types.FromString:
+			from = g.Wrap(v.ToString())
+			break
+		case *types.FromRawString:
+			from = v.ToString()
+			break
+	}
+
+	return "from " + from
 }
 
 func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {

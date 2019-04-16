@@ -46,7 +46,6 @@ is under development...
 is under development...
 
 ## Features
-- Sub from
 - Joins
 - insert query
 - update query

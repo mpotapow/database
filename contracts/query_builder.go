@@ -14,9 +14,13 @@ type QueryBuilder interface {
 
 	From(from string) QueryBuilder
 
+	FromRaw(from ...interface{}) QueryBuilder
+
+	FromSub(query interface{}, as string) QueryBuilder
+
 	Select(args ...string) QueryBuilder
 
-	SelectRaw(args ...string) QueryBuilder
+	SelectRaw(args ...interface{}) QueryBuilder
 
 	SelectSub(query interface{}, as string) QueryBuilder
 
