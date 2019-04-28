@@ -24,6 +24,18 @@ type QueryBuilder interface {
 
 	SelectSub(query interface{}, as string) QueryBuilder
 
+	Join(table string, args ...interface{}) QueryBuilder
+
+	JoinWhere(table string, args ...interface{}) QueryBuilder
+
+	LeftJoin(table string, args ...interface{}) QueryBuilder
+
+	LeftJoinWhere(table string, args ...interface{}) QueryBuilder
+
+	RightJoinWhere(table string, args ...interface{}) QueryBuilder
+
+	CrossJoin(table string, args ...interface{}) QueryBuilder
+
 	Where(param ...interface{}) QueryBuilder
 
 	OrWhere(param ...interface{}) QueryBuilder
@@ -105,4 +117,14 @@ type QueryBuilder interface {
 	Sum(column string) (*sql.Rows, error)
 
 	Avg(column string) (*sql.Rows, error)
+}
+
+type JoinQueryBuilder interface {
+	QueryBuilder
+
+	GetType() string
+
+	On(args ...interface{}) JoinQueryBuilder
+
+	OrOn(args ...interface{}) JoinQueryBuilder
 }

@@ -129,7 +129,25 @@ func (g *Grammar) compileFrom(queryBuilder *query.Builder) string {
 
 func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
 
-	return ""
+	var res []string
+	for _, j := range queryBuilder.Joins {
+
+		qb := j.(*query.JoinClause).GetQueryBuilder()
+		builder := qb.(*query.Builder)
+
+		table := g.Wrap(builder.Table.ToString())
+
+		nestedJoins := ""
+		if len(builder.Joins) != 0 {
+
+			nestedJoins = " " + g.compileJoins(queryBuilder)
+		}
+
+		q := j.GetType() + " join " + table + nestedJoins + " " + g.compileWhere(builder)
+		res = append(res, strings.Trim(q, " "))
+	}
+
+	return strings.Join(res, " ")
 }
 
 func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
@@ -335,6 +353,15 @@ func (g *Grammar) removeLeadingBoolean(query string) string {
 }
 
 func (g *Grammar) Wrap(v string) string {
+
+	if strings.Index(v, ".") > -1 {
+		var res []string
+		for _, v := range strings.Split(v, ".") {
+			res = append(res, g.Wrap(v))
+		}
+
+		return strings.Join(res, ".")
+	}
 
 	if v == "*" {
 		return v

@@ -19,6 +19,8 @@ type WhereDateType interface {
 
 type WhereCallback = func(q contracts.QueryBuilder)
 
+type WhereJoinCallback = func(q contracts.JoinQueryBuilder)
+
 type Where struct {
 	logic string
 	column string

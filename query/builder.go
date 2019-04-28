@@ -11,8 +11,7 @@ type Builder struct {
 
 	Table types.FromType
 
-	RowLimit int
-	RowOffset int
+	Joins []contracts.JoinQueryBuilder
 
 	Aggregate types.AggregateType
 	Orders []types.OrderType
@@ -20,6 +19,9 @@ type Builder struct {
 	Groups []string
 	Havings []types.WhereType
 	Columns []types.SelectType
+
+	RowLimit int
+	RowOffset int
 
 	bindings map[string][]interface{}
 
@@ -142,7 +144,7 @@ func (b *Builder) FromSub(query interface{}, as string) contracts.QueryBuilder {
 	return b
 }
 
-func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryBuilder {
+func (b *Builder) buildWhere(args []interface{}, logic string) contracts.QueryBuilder {
 
 	if b.isCallback(args[0]) {
 		return b.whereNested(args[0].(types.WhereCallback), logic)
@@ -169,7 +171,7 @@ func (b *Builder) buildWhere(logic string, args ...interface{}) contracts.QueryB
 	return b
 }
 
-func (b *Builder) buildWhereColumn(logic string, args ...interface{}) contracts.QueryBuilder {
+func (b *Builder) buildWhereColumn(args []interface{}, logic string) contracts.QueryBuilder {
 
 	col, col2, operator := b.prepareArguments(args...)
 	value := col2.(string)
@@ -232,7 +234,7 @@ func (b *Builder) buildWhereBetween(column string, operator string, values []int
 	return b
 }
 
-func (b *Builder) buildWhereDate(dateType string, format string, logic string, args ...interface{}) contracts.QueryBuilder {
+func (b *Builder) buildWhereDate(dateType string, format string, logic string, args []interface{}) contracts.QueryBuilder {
 
 	col, value, operator := b.prepareArguments(args...)
 
@@ -289,24 +291,107 @@ func (b *Builder) buildOrderByRaw(sql string, binding []interface{}) contracts.Q
 	return b
 }
 
+func (b *Builder) buildJoin(table string, args []interface{}, joinType string, where bool) contracts.QueryBuilder {
+
+	join := NewJoinClause(b, joinType, table)
+
+	if b.isJoinCallback(args[0]) {
+
+		args[0].(types.WhereJoinCallback)(join)
+		b.Joins = append(b.Joins, join)
+	} else {
+
+		if where {
+			join.Where(args...)
+		} else {
+			join.On(args...)
+		}
+
+		b.Joins = append(b.Joins, join)
+	}
+
+	qb := join.(*JoinClause).GetQueryBuilder()
+	for _, v := range qb.(*Builder).getBindingsForSql() {
+		b.addBinding(v, "join")
+	}
+
+	return b
+}
+
+func (b *Builder) Join(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "inner", false)
+}
+
+func (b *Builder) JoinWhere(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "inner", true)
+}
+
+func (b *Builder) JoinSub(table string, args ...interface{}) contracts.QueryBuilder {
+	// TODO
+	return b
+}
+
+func (b *Builder) LeftJoin(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "left", false)
+}
+
+func (b *Builder) LeftJoinWhere(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "left", true)
+}
+
+func (b *Builder) LeftJoinSub(table string, args ...interface{}) contracts.QueryBuilder {
+	// TODO
+	return b
+}
+
+func (b *Builder) RightJoin(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "right", false)
+}
+
+func (b *Builder) RightJoinWhere(table string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildJoin(table, args, "right", true)
+}
+
+func (b *Builder) RightJoinSub(table string, args ...interface{}) contracts.QueryBuilder {
+	// TODO
+	return b
+}
+
+func (b *Builder) CrossJoin(table string, args ...interface{}) contracts.QueryBuilder {
+
+	if len(args) > 0 {
+		return b.buildJoin(table, args, "cross", false)
+	}
+
+	b.Joins = append(b.Joins, NewJoinClause(b, "cross", table))
+
+	return b
+}
+
 func (b *Builder) Where(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhere("and", args...)
+	return b.buildWhere(args, "and")
 }
 
 func (b *Builder) OrWhere(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhere("or", args...)
+	return b.buildWhere(args, "or")
 }
 
 func (b *Builder) WhereColumn(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereColumn("and", args...)
+	return b.buildWhereColumn(args, "and")
 }
 
 func (b *Builder) OrWhereColumn(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereColumn("or", args...)
+	return b.buildWhereColumn(args, "or")
 }
 
 func (b *Builder) WhereRaw(condition string, bindings ...interface{}) contracts.QueryBuilder {
@@ -381,52 +466,52 @@ func (b *Builder) OrWhereNotBetween(column string, from interface{}, to interfac
 
 func (b *Builder) WhereDate(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("date",  "2006-01-02", "and", args...)
+	return b.buildWhereDate("date",  "2006-01-02", "and", args)
 }
 
 func (b *Builder) OrWhereDate(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("date", "2006-01-02", "or", args...)
+	return b.buildWhereDate("date", "2006-01-02", "or", args)
 }
 
 func (b *Builder) WhereTime(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("time", "15:04:05", "and", args...)
+	return b.buildWhereDate("time", "15:04:05", "and", args)
 }
 
 func (b *Builder) OrWhereTime(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("time", "15:04:05", "or", args...)
+	return b.buildWhereDate("time", "15:04:05", "or", args)
 }
 
 func (b *Builder) WhereDay(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("day", "02", "and", args...)
+	return b.buildWhereDate("day", "02", "and", args)
 }
 
 func (b *Builder) OrWhereDay(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("day", "02", "or", args...)
+	return b.buildWhereDate("day", "02", "or", args)
 }
 
 func (b *Builder) WhereMonth(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("month", "01", "and", args...)
+	return b.buildWhereDate("month", "01", "and", args)
 }
 
 func (b *Builder) OrWhereMonth(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("month", "01", "or", args...)
+	return b.buildWhereDate("month", "01", "or", args)
 }
 
 func (b *Builder) WhereYear(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("year", "2006", "and", args...)
+	return b.buildWhereDate("year", "2006", "and", args)
 }
 
 func (b *Builder) OrWhereYear(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("year", "2006", "or", args...)
+	return b.buildWhereDate("year", "2006", "or", args)
 }
 
 func (b *Builder) whereNested(callback func(q contracts.QueryBuilder), logic string) contracts.QueryBuilder {
@@ -582,6 +667,12 @@ func (b *Builder) ToSql() string {
 func (b *Builder) isCallback(arg interface{}) bool {
 
 	_, ok := arg.(types.WhereCallback)
+	return ok
+}
+
+func (b *Builder) isJoinCallback(arg interface{}) bool {
+
+	_, ok := arg.(types.WhereJoinCallback)
 	return ok
 }
 
