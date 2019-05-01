@@ -291,7 +291,7 @@ func (b *Builder) buildOrderByRaw(sql string, binding []interface{}) contracts.Q
 	return b
 }
 
-func (b *Builder) buildJoin(table string, args []interface{}, joinType string, where bool) contracts.QueryBuilder {
+func (b *Builder) buildJoin(table interface{}, args []interface{}, joinType string, where bool) contracts.QueryBuilder {
 
 	join := NewJoinClause(b, joinType, table)
 
@@ -318,6 +318,21 @@ func (b *Builder) buildJoin(table string, args []interface{}, joinType string, w
 	return b
 }
 
+func (b *Builder) buildSubJoin(
+	query interface{}, as string, args []interface{}, joinType string, where bool,
+) contracts.QueryBuilder {
+
+	subQuery, bindings := b.createSub(query)
+
+	subSelect := "(" + subQuery + ") as " + b.grammar.Wrap(as)
+
+	for _, v := range bindings {
+		b.addBinding(v, "join")
+	}
+
+	return b.buildJoin(types.NewExpression(subSelect), args, joinType, where)
+}
+
 func (b *Builder) Join(table string, args ...interface{}) contracts.QueryBuilder {
 
 	return b.buildJoin(table, args, "inner", false)
@@ -328,9 +343,9 @@ func (b *Builder) JoinWhere(table string, args ...interface{}) contracts.QueryBu
 	return b.buildJoin(table, args, "inner", true)
 }
 
-func (b *Builder) JoinSub(table string, args ...interface{}) contracts.QueryBuilder {
-	// TODO
-	return b
+func (b *Builder) JoinSub(query interface{}, as string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildSubJoin(query, as, args, "inner", false)
 }
 
 func (b *Builder) LeftJoin(table string, args ...interface{}) contracts.QueryBuilder {
@@ -343,9 +358,9 @@ func (b *Builder) LeftJoinWhere(table string, args ...interface{}) contracts.Que
 	return b.buildJoin(table, args, "left", true)
 }
 
-func (b *Builder) LeftJoinSub(table string, args ...interface{}) contracts.QueryBuilder {
-	// TODO
-	return b
+func (b *Builder) LeftJoinSub(query interface{}, as string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildSubJoin(query, as, args, "left", false)
 }
 
 func (b *Builder) RightJoin(table string, args ...interface{}) contracts.QueryBuilder {
@@ -358,9 +373,9 @@ func (b *Builder) RightJoinWhere(table string, args ...interface{}) contracts.Qu
 	return b.buildJoin(table, args, "right", true)
 }
 
-func (b *Builder) RightJoinSub(table string, args ...interface{}) contracts.QueryBuilder {
-	// TODO
-	return b
+func (b *Builder) RightJoinSub(query interface{}, as string, args ...interface{}) contracts.QueryBuilder {
+
+	return b.buildSubJoin(query, as, args, "right", false)
 }
 
 func (b *Builder) CrossJoin(table string, args ...interface{}) contracts.QueryBuilder {

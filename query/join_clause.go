@@ -11,14 +11,21 @@ type JoinClause struct {
 	joinType string
 }
 
-func NewJoinClause(builder *Builder, joinType string, table string) contracts.JoinQueryBuilder {
+func NewJoinClause(builder *Builder, joinType string, table interface{}) contracts.JoinQueryBuilder {
 
 	JoinClause := &JoinClause{
 		builder.newQuery(),
 		builder,
 		joinType,
 	}
-	JoinClause.From(table)
+
+	switch v := table.(type) {
+		case string:
+			JoinClause.From(v)
+		case types.ExpressionType:
+			qb := JoinClause.QueryBuilder.(*Builder)
+			qb.Table = types.NewFromRawString(v.ValueToString())
+	}
 
 	return JoinClause
 }

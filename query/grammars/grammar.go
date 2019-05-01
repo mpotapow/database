@@ -135,7 +135,15 @@ func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
 		qb := j.(*query.JoinClause).GetQueryBuilder()
 		builder := qb.(*query.Builder)
 
-		table := g.Wrap(builder.Table.ToString())
+		var table string
+		switch v := builder.Table.(type) {
+			case *types.FromString:
+				table = g.Wrap(v.ToString())
+				break
+			case *types.FromRawString:
+				table = v.ToString()
+				break
+		}
 
 		nestedJoins := ""
 		if len(builder.Joins) != 0 {

@@ -28,11 +28,19 @@ type QueryBuilder interface {
 
 	JoinWhere(table string, args ...interface{}) QueryBuilder
 
+	JoinSub(query interface{}, as string, args ...interface{}) QueryBuilder
+
 	LeftJoin(table string, args ...interface{}) QueryBuilder
 
 	LeftJoinWhere(table string, args ...interface{}) QueryBuilder
 
+	LeftJoinSub(query interface{}, as string, args ...interface{}) QueryBuilder
+
+	RightJoin(table string, args ...interface{}) QueryBuilder
+
 	RightJoinWhere(table string, args ...interface{}) QueryBuilder
+
+	RightJoinSub(query interface{}, as string, args ...interface{}) QueryBuilder
 
 	CrossJoin(table string, args ...interface{}) QueryBuilder
 
