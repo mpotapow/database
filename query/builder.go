@@ -669,6 +669,27 @@ func (b *Builder) setAggregate(function string, column string) contracts.QueryBu
 	return b
 }
 
+func (b *Builder) Insert(values ...map[string]interface{}) sql.Result {
+
+	var columns []string
+	for col, _ := range values[0:1][0] {
+		columns = append(columns, col)
+	}
+
+	var bindings []interface{}
+	for _, val := range values {
+		for _, col := range columns  {
+			bindings = append(bindings, val[col])
+		}
+	}
+
+	return b.connection.Insert(b.grammar.CompileInsert(b, values, columns), bindings)
+}
+
+func (b *Builder) Truncate() {
+	// TODO
+}
+
 func (b *Builder) runSelect() (*sql.Rows, error) {
 
 	return b.connection.Select(b.ToSql(), b.getBindingsForSql())

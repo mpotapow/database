@@ -10,30 +10,30 @@ import (
 
 type Grammar struct {
 	parametrizeSymbol string
-	selectComponents map[int]interface{}
+	selectComponents  map[int]interface{}
 }
 
 func NewGrammar() *Grammar {
 
 	return &Grammar{
 		parametrizeSymbol: "?",
-		selectComponents: map[int]interface{}{},
+		selectComponents:  map[int]interface{}{},
 	}
 }
 
 func (g *Grammar) GetDefaultSelectComponents() map[int]interface{} {
 
 	return map[int]interface{}{
-		0: g.compileAggregate,
-		1: g.compileColumns,
-		2: g.compileFrom,
-		3: g.compileJoins,
-		4: g.compileWhere,
-		5: g.compileGroups,
-		6: g.compileHavings,
-		7: g.compileOrders,
-		8: g.compileLimit,
-		9: g.compileOffset,
+		0:  g.compileAggregate,
+		1:  g.compileColumns,
+		2:  g.compileFrom,
+		3:  g.compileJoins,
+		4:  g.compileWhere,
+		5:  g.compileGroups,
+		6:  g.compileHavings,
+		7:  g.compileOrders,
+		8:  g.compileLimit,
+		9:  g.compileOffset,
 		10: g.compileUnions,
 		11: g.compileLock,
 	}
@@ -100,12 +100,12 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 	res := make([]string, 0)
 	for _, s := range queryBuilder.Columns {
 		switch v := s.(type) {
-			case *types.SelectString:
-				res = append(res, g.Wrap(v.ToString()))
-				break
-			case *types.SelectRawString:
-				res = append(res, v.ToString())
-				break
+		case *types.SelectString:
+			res = append(res, g.Wrap(v.ToString()))
+			break
+		case *types.SelectRawString:
+			res = append(res, v.ToString())
+			break
 		}
 	}
 
@@ -114,17 +114,7 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 
 func (g *Grammar) compileFrom(queryBuilder *query.Builder) string {
 
-	var from string
-	switch v := queryBuilder.Table.(type) {
-		case *types.FromString:
-			from = g.Wrap(v.ToString())
-			break
-		case *types.FromRawString:
-			from = v.ToString()
-			break
-	}
-
-	return "from " + from
+	return "from " + g.WrapTable(queryBuilder.Table)
 }
 
 func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
@@ -135,15 +125,7 @@ func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
 		qb := j.(*query.JoinClause).GetQueryBuilder()
 		builder := qb.(*query.Builder)
 
-		var table string
-		switch v := builder.Table.(type) {
-			case *types.FromString:
-				table = g.Wrap(v.ToString())
-				break
-			case *types.FromRawString:
-				table = v.ToString()
-				break
-		}
+		table := g.WrapTable(builder.Table)
 
 		nestedJoins := ""
 		if len(builder.Joins) != 0 {
@@ -167,49 +149,49 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 	res := make([]string, 0)
 	for _, w := range queryBuilder.Wheres {
 		switch w.(type) {
-			default:
-				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereIn:
-				value := "(" + g.parameterize(w, ", ") + ")"
-				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereColumn:
-				where := w.(types.ExpressionType)
-				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.Wrap(where.ValueToString()))
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereRaw:
-				where := w.(types.ExpressionType)
-				res = append(res, w.GetLogic() + " " + where.ValueToString())
-				break
-			case *types.WhereBetween:
-				value := g.parameterize(w, " and ")
-				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereDate:
-				where := w.(types.WhereDateType)
-				condition := fmt.Sprintf("%v(%v) %v %v",
-					where.GetDateType(),
-					g.Wrap(w.GetColumn()),
-					w.GetOperator(),
-					g.parameterize(w, ", "),
-				)
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereNested:
-				builder := g.getQueryByWhere(w)
-				str := g.compileWhere(builder)
-				res = append(res, w.GetLogic() + " (" + str[6:] + ")")
-				break
-			case *types.WhereSub:
-				builder := g.getQueryByWhere(w)
-				selectRaw := g.CompileSelect(builder)
-				res = append(res, g.Wrap(w.GetColumn()) + " " + w.GetOperator() + " (" + selectRaw + ")")
-				break
+		default:
+			condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterizeWhere(w, ", "))
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereIn:
+			value := "(" + g.parameterizeWhere(w, ", ") + ")"
+			condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereColumn:
+			where := w.(types.ExpressionType)
+			condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.Wrap(where.ValueToString()))
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereRaw:
+			where := w.(types.ExpressionType)
+			res = append(res, w.GetLogic()+" "+where.ValueToString())
+			break
+		case *types.WhereBetween:
+			value := g.parameterizeWhere(w, " and ")
+			condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), value)
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereDate:
+			where := w.(types.WhereDateType)
+			condition := fmt.Sprintf("%v(%v) %v %v",
+				where.GetDateType(),
+				g.Wrap(w.GetColumn()),
+				w.GetOperator(),
+				g.parameterizeWhere(w, ", "),
+			)
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereNested:
+			builder := g.getQueryByWhere(w)
+			str := g.compileWhere(builder)
+			res = append(res, w.GetLogic()+" ("+str[6:]+")")
+			break
+		case *types.WhereSub:
+			builder := g.getQueryByWhere(w)
+			selectRaw := g.CompileSelect(builder)
+			res = append(res, g.Wrap(w.GetColumn())+" "+w.GetOperator()+" ("+selectRaw+")")
+			break
 		}
 	}
 
@@ -234,14 +216,14 @@ func (g *Grammar) compileHavings(queryBuilder *query.Builder) string {
 	res := make([]string, 0)
 	for _, w := range queryBuilder.Havings {
 		switch w.(type) {
-			default:
-				condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterize(w, ", "))
-				res = append(res, w.GetLogic() + " " + condition)
-				break
-			case *types.WhereRaw:
-				where := w.(types.ExpressionType)
-				res = append(res, w.GetLogic() + " " + where.ValueToString())
-				break
+		default:
+			condition := fmt.Sprintf("%v %v %v", g.Wrap(w.GetColumn()), w.GetOperator(), g.parameterizeWhere(w, ", "))
+			res = append(res, w.GetLogic()+" "+condition)
+			break
+		case *types.WhereRaw:
+			where := w.(types.ExpressionType)
+			res = append(res, w.GetLogic()+" "+where.ValueToString())
+			break
 		}
 	}
 
@@ -260,7 +242,7 @@ func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {
 			orderExpr := o.(types.ExpressionType)
 			orders = append(orders, orderExpr.ValueToString())
 		} else {
-			orders = append(orders, g.Wrap(o.GetColumn()) + " " + o.GetDirection())
+			orders = append(orders, g.Wrap(o.GetColumn())+" "+o.GetDirection())
 		}
 	}
 
@@ -295,7 +277,23 @@ func (g *Grammar) compileLock(queryBuilder *query.Builder) string {
 	return ""
 }
 
-func (g *Grammar) columnize(columns []string) string  {
+func (g *Grammar) CompileInsert(
+	b contracts.QueryBuilder, values []map[string]interface{}, columns []string,
+) string {
+
+	builder := b.(*query.Builder)
+	table := g.WrapTable(builder.Table)
+	mock := make([]interface{}, len(values[0:1][0]))
+
+	var params []string
+	for _, _ = range values {
+		params = append(params, "(" + g.parameterize(mock, ", ") + ")")
+	}
+
+	return "insert into " + table + "(" +  g.columnize(columns) + ") values " + strings.Join(params, ", ")
+}
+
+func (g *Grammar) columnize(columns []string) string {
 
 	for i, v := range columns {
 		columns[i] = g.Wrap(v)
@@ -304,9 +302,19 @@ func (g *Grammar) columnize(columns []string) string  {
 	return strings.Join(columns, ", ")
 }
 
-func (g *Grammar) parameterize(where types.WhereType, sep string) string {
+func (g *Grammar) parameterize(values []interface{}, sep string) string {
 
-	res := make([]string, 0)
+	var res []string
+	for _, _ = range values {
+		res = append(res, g.parametrizeSymbol)
+	}
+
+	return strings.Join(res, sep)
+}
+
+func (g *Grammar) parameterizeWhere(where types.WhereType, sep string) string {
+
+	var res []string
 	if g.isExpression(where) {
 		var exprArg = where.(types.ExpressionType)
 		res = append(res, exprArg.ValueToString())
@@ -319,10 +327,10 @@ func (g *Grammar) parameterize(where types.WhereType, sep string) string {
 	return strings.Join(res, sep)
 }
 
-func (g *Grammar) isExpression(where interface{}) bool {
+func (g *Grammar) isExpression(val interface{}) bool {
 
-	 _, ok := where.(types.ExpressionType)
-	 return ok
+	_, ok := val.(types.ExpressionType)
+	return ok
 }
 
 func (g *Grammar) getQueryByWhere(w types.WhereType) *query.Builder {
@@ -376,4 +384,16 @@ func (g *Grammar) Wrap(v string) string {
 	}
 
 	return "`" + v + "`"
+}
+
+func (g *Grammar) WrapTable(table interface{}) string {
+
+	switch v := table.(type) {
+	case *types.FromString:
+		return g.Wrap(v.ToString())
+	case *types.FromRawString:
+		return v.ToString()
+	}
+
+	panic("Wrong table params for wrap")
 }

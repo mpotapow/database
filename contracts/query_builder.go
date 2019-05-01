@@ -125,6 +125,8 @@ type QueryBuilder interface {
 	Sum(column string) (*sql.Rows, error)
 
 	Avg(column string) (*sql.Rows, error)
+
+	Insert(values ...map[string]interface{}) sql.Result
 }
 
 type JoinQueryBuilder interface {

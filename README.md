@@ -46,7 +46,6 @@ is under development...
 is under development...
 
 ## Features
-- insert query
 - update query
 - delete query
 - Transaction

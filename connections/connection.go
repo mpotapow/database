@@ -28,16 +28,31 @@ func (c *Connection) Query() contracts.QueryBuilder {
 	return query.NewBuilder(c, c.queryGrammar)
 }
 
-func (c Connection) Select(query string, bindings []interface{}) (*sql.Rows, error) {
+func (c *Connection) Select(query string, bindings []interface{}) (*sql.Rows, error) {
 
-	fmt.Println(query)
+	fmt.Println("== SELECT ==", query)
+
 	statement, err := c.pdo.Prepare(query)
-
 	prepareError(err)
 
 	defer statement.Close()
 
 	return statement.Query(bindings...)
+}
+
+func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
+
+	fmt.Println("== INSERT ==", query)
+
+	statement, err := c.pdo.Prepare(query)
+	prepareError(err)
+
+	defer statement.Close()
+
+	res, err := statement.Exec(bindings...)
+	prepareError(err)
+
+	return res
 }
 
 func prepareError(err error) {
