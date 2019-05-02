@@ -127,6 +127,8 @@ type QueryBuilder interface {
 	Avg(column string) (*sql.Rows, error)
 
 	Insert(values ...map[string]interface{}) sql.Result
+
+	Update(values map[string]interface{}) int64
 }
 
 type JoinQueryBuilder interface {

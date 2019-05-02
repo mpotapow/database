@@ -8,40 +8,39 @@ import (
 )
 
 type Builder struct {
-
 	Table types.FromType
 
 	Joins []contracts.JoinQueryBuilder
 
 	Aggregate types.AggregateType
-	Orders []types.OrderType
-	Wheres []types.WhereType
-	Groups []string
-	Havings []types.WhereType
-	Columns []types.SelectType
+	Orders    []types.OrderType
+	Wheres    []types.WhereType
+	Groups    []string
+	Havings   []types.WhereType
+	Columns   []types.SelectType
 
-	RowLimit int
+	RowLimit  int
 	RowOffset int
 
 	bindings map[string][]interface{}
 
-	grammar contracts.Grammar
+	grammar    contracts.Grammar
 	connection contracts.Connection
 }
 
 func NewBuilder(connection contracts.Connection, grammar contracts.Grammar) contracts.QueryBuilder {
 
 	return &Builder{
-		grammar: grammar,
+		grammar:    grammar,
 		connection: connection,
 		bindings: map[string][]interface{}{
 			"select": make([]interface{}, 0),
-			"from": make([]interface{}, 0),
-			"join": make([]interface{}, 0),
-			"where": make([]interface{}, 0),
+			"from":   make([]interface{}, 0),
+			"join":   make([]interface{}, 0),
+			"where":  make([]interface{}, 0),
 			"having": make([]interface{}, 0),
-			"order": make([]interface{}, 0),
-			"union": make([]interface{}, 0),
+			"order":  make([]interface{}, 0),
+			"union":  make([]interface{}, 0),
 		},
 	}
 }
@@ -99,12 +98,12 @@ func (b *Builder) createSub(query interface{}) (string, []interface{}) {
 func (b *Builder) parseSub(query interface{}) (string, []interface{}) {
 
 	switch v := query.(type) {
-		case string:
-			return v, []interface{}{}
-		case *Builder:
-			return v.ToSql(), v.getBindingsForSql()
-		default:
-			panic("Illegal sub query")
+	case string:
+		return v, []interface{}{}
+	case *Builder:
+		return v.ToSql(), v.GetBindingsForSql()
+	default:
+		panic("Illegal sub query")
 
 	}
 }
@@ -153,14 +152,14 @@ func (b *Builder) buildWhere(args []interface{}, logic string) contracts.QueryBu
 	col, value, operator := b.prepareArguments(args...)
 
 	switch v := value.(type) {
-		case nil:
-			if operator == "=" {
-				return b.WhereNull(col)
-			} else {
-				return b.WhereNotNull(col)
-			}
-		case types.WhereCallback:
-			return b.whereSub(col, operator, v, logic)
+	case nil:
+		if operator == "=" {
+			return b.WhereNull(col)
+		} else {
+			return b.WhereNotNull(col)
+		}
+	case types.WhereCallback:
+		return b.whereSub(col, operator, v, logic)
 	}
 
 	whereType := b.getWhereTypeByValue(col, operator, value, logic)
@@ -239,12 +238,12 @@ func (b *Builder) buildWhereDate(dateType string, format string, logic string, a
 	col, value, operator := b.prepareArguments(args...)
 
 	switch v := value.(type) {
-		case string:
-			value = v
-			break
-		case time.Time:
-			value = v.Format(format)
-			break
+	case string:
+		value = v
+		break
+	case time.Time:
+		value = v.Format(format)
+		break
 	}
 
 	whereType := types.NewWhereDate(col, operator, value.(string), dateType, logic)
@@ -311,7 +310,7 @@ func (b *Builder) buildJoin(table interface{}, args []interface{}, joinType stri
 	}
 
 	qb := join.(*JoinClause).GetQueryBuilder()
-	for _, v := range qb.(*Builder).getBindingsForSql() {
+	for _, v := range qb.(*Builder).GetBindingsForSql() {
 		b.addBinding(v, "join")
 	}
 
@@ -481,7 +480,7 @@ func (b *Builder) OrWhereNotBetween(column string, from interface{}, to interfac
 
 func (b *Builder) WhereDate(args ...interface{}) contracts.QueryBuilder {
 
-	return b.buildWhereDate("date",  "2006-01-02", "and", args)
+	return b.buildWhereDate("date", "2006-01-02", "and", args)
 }
 
 func (b *Builder) OrWhereDate(args ...interface{}) contracts.QueryBuilder {
@@ -558,7 +557,7 @@ func (b *Builder) whereSub(
 
 	b.Wheres = append(b.Wheres, types.NewWhereSub(column, operator, query, logic))
 
-	for _, v := range query.getBindingsForSql() {
+	for _, v := range query.GetBindingsForSql() {
 		b.addBinding(v, "where")
 	}
 
@@ -678,12 +677,19 @@ func (b *Builder) Insert(values ...map[string]interface{}) sql.Result {
 
 	var bindings []interface{}
 	for _, val := range values {
-		for _, col := range columns  {
+		for _, col := range columns {
 			bindings = append(bindings, val[col])
 		}
 	}
 
 	return b.connection.Insert(b.grammar.CompileInsert(b, values, columns), bindings)
+}
+
+func (b *Builder) Update(values map[string]interface{}) int64 {
+
+	query := b.grammar.CompileUpdate(b, values)
+
+	return b.connection.Update(query, b.grammar.PrepareBindingsForUpdate(b, b.bindings, values))
 }
 
 func (b *Builder) Truncate() {
@@ -692,7 +698,7 @@ func (b *Builder) Truncate() {
 
 func (b *Builder) runSelect() (*sql.Rows, error) {
 
-	return b.connection.Select(b.ToSql(), b.getBindingsForSql())
+	return b.connection.Select(b.ToSql(), b.GetBindingsForSql())
 }
 
 func (b *Builder) ToSql() string {
@@ -714,10 +720,10 @@ func (b *Builder) isJoinCallback(arg interface{}) bool {
 
 func (b *Builder) isSlice(arg interface{}) bool {
 	switch arg.(type) {
-		case []interface{}:
-			return true
-		default:
-			return false
+	case []interface{}:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -732,18 +738,18 @@ func (b *Builder) prepareArguments(args ...interface{}) (string, interface{}, st
 
 func (b *Builder) getWhereTypeByValue(col string, operator string, value interface{}, logic string) types.WhereType {
 	switch v := value.(type) {
-		case string:
-			return types.NewWhereString(col, operator, v, logic)
-		case int:
-			return types.NewWhereInt(col, operator, v, logic)
-		case float32:
-			return types.NewWhereFloat32(col, operator, v, logic)
-		case bool:
-			return types.NewWhereBool(col, operator, v, logic)
-		case nil:
-			return types.NewWhereNull(col, operator, logic)
-		default:
-			panic("Illegal where type")
+	case string:
+		return types.NewWhereString(col, operator, v, logic)
+	case int:
+		return types.NewWhereInt(col, operator, v, logic)
+	case float32:
+		return types.NewWhereFloat32(col, operator, v, logic)
+	case bool:
+		return types.NewWhereBool(col, operator, v, logic)
+	case nil:
+		return types.NewWhereNull(col, operator, logic)
+	default:
+		panic("Illegal where type")
 	}
 }
 
@@ -758,12 +764,23 @@ func (b *Builder) addBinding(value interface{}, bindingType string) {
 	}
 }
 
-func (b *Builder) getBindingsForSql() []interface{} {
+func (b *Builder) GetBindingsForSql(except ...string) []interface{} {
 
-	res := make([]interface{}, 0)
 	bindingIterator := []string{"select", "from", "join", "where", "having", "order", "union"}
 
+	exceptMap := make(map[string]bool, 0)
+
+	if len(except) > 0 {
+		for _, v := range except {
+			exceptMap[v] = true
+		}
+	}
+
+	var res []interface{}
 	for _, t := range bindingIterator {
+		if _, ok := exceptMap[t]; ok {
+			continue
+		}
 		for _, v := range b.bindings[t] {
 			res = append(res, v)
 		}

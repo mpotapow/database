@@ -9,16 +9,16 @@ import (
 )
 
 type Connection struct {
-	pdo *sql.DB
-	config *config.DatabaseDriver
+	pdo          *sql.DB
+	config       *config.DatabaseDriver
 	queryGrammar contracts.Grammar
 }
 
 func NewConnection(pdo *sql.DB, config *config.DatabaseDriver, grammar contracts.Grammar) *Connection {
 
 	return &Connection{
-		pdo: pdo,
-		config: config,
+		pdo:          pdo,
+		config:       config,
 		queryGrammar: grammar,
 	}
 }
@@ -53,6 +53,26 @@ func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
 	prepareError(err)
 
 	return res
+}
+
+func (c *Connection) Update(query string, bindings []interface{}) int64 {
+
+	fmt.Println("== UPDATE ==", query)
+
+	statement, err := c.pdo.Prepare(query)
+	prepareError(err)
+
+	defer statement.Close()
+
+	res, err := statement.Exec(bindings...)
+	prepareError(err)
+
+	cont, err := res.RowsAffected()
+	if err != nil {
+		return 0
+	}
+
+	return cont
 }
 
 func prepareError(err error) {

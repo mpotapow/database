@@ -6,5 +6,9 @@ type Grammar interface {
 
 	CompileInsert(b QueryBuilder, values []map[string]interface{}, columns []string) string
 
+	CompileUpdate(b QueryBuilder, values map[string]interface{}) string
+
 	Wrap(v string) string
+
+	PrepareBindingsForUpdate(b QueryBuilder, bindings map[string][]interface{}, values map[string]interface{}) []interface{}
 }

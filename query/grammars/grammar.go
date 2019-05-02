@@ -287,10 +287,32 @@ func (g *Grammar) CompileInsert(
 
 	var params []string
 	for _, _ = range values {
-		params = append(params, "(" + g.parameterize(mock, ", ") + ")")
+		params = append(params, "("+g.parameterize(mock, ", ")+")")
 	}
 
-	return "insert into " + table + "(" +  g.columnize(columns) + ") values " + strings.Join(params, ", ")
+	return "insert into " + table + "(" + g.columnize(columns) + ") values " + strings.Join(params, ", ")
+}
+
+func (g *Grammar) CompileUpdate(b contracts.QueryBuilder, values map[string]interface{}) string {
+
+	builder := b.(*query.Builder)
+	table := g.WrapTable(builder.Table)
+
+	joins := ""
+	if len(builder.Joins) > 0 {
+		joins = " " + g.compileJoins(builder)
+	}
+
+	var columns []string
+	for col, _ := range values {
+		columns = append(columns, g.Wrap(col)+" = "+g.parametrizeSymbol)
+	}
+
+	wheres := g.compileWhere(builder)
+
+	q := "update " + table + joins + " set " + strings.Join(columns, ", ") + " " + wheres
+
+	return strings.Trim(q, " ")
 }
 
 func (g *Grammar) columnize(columns []string) string {
@@ -396,4 +418,23 @@ func (g *Grammar) WrapTable(table interface{}) string {
 	}
 
 	panic("Wrong table params for wrap")
+}
+
+func (g *Grammar) PrepareBindingsForUpdate(
+	b contracts.QueryBuilder, bindings map[string][]interface{}, values map[string]interface{},
+) []interface{} {
+
+	var res []interface{}
+	res = append(res, bindings["join"]...)
+
+	for _, v := range values {
+		res = append(res, v)
+	}
+
+	var queryBuilder = b.(*query.Builder)
+	exceptBindings := queryBuilder.GetBindingsForSql("join", "select")
+
+	res = append(res, exceptBindings...)
+
+	return res
 }
