@@ -8,6 +8,8 @@ type Grammar interface {
 
 	CompileUpdate(b QueryBuilder, values map[string]interface{}) string
 
+	CompileDelete(b QueryBuilder) string
+
 	Wrap(v string) string
 
 	PrepareBindingsForUpdate(b QueryBuilder, bindings map[string][]interface{}, values map[string]interface{}) []interface{}

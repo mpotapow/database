@@ -692,6 +692,11 @@ func (b *Builder) Update(values map[string]interface{}) int64 {
 	return b.connection.Update(query, b.grammar.PrepareBindingsForUpdate(b, b.bindings, values))
 }
 
+func (b *Builder) Delete() int64 {
+
+	return b.connection.Delete(b.grammar.CompileDelete(b), b.GetBindingsForSql())
+}
+
 func (b *Builder) Truncate() {
 	// TODO
 }

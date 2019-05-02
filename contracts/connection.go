@@ -11,4 +11,6 @@ type Connection interface {
 	Insert(query string, bindings []interface{}) sql.Result
 
 	Update(query string, bindings []interface{}) int64
+
+	Delete(query string, bindings []interface{}) int64
 }

@@ -46,7 +46,6 @@ is under development...
 is under development...
 
 ## Features
-- delete query
 - Transaction
 - Locking
 - Support json

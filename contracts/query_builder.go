@@ -129,6 +129,8 @@ type QueryBuilder interface {
 	Insert(values ...map[string]interface{}) sql.Result
 
 	Update(values map[string]interface{}) int64
+
+	Delete() int64
 }
 
 type JoinQueryBuilder interface {

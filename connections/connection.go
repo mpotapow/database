@@ -42,7 +42,20 @@ func (c *Connection) Select(query string, bindings []interface{}) (*sql.Rows, er
 
 func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
 
-	fmt.Println("== INSERT ==", query)
+	return c.statement(query, bindings)
+}
+
+func (c *Connection) Update(query string, bindings []interface{}) int64 {
+
+	return c.affectingStatement(query, bindings)
+}
+
+func (c *Connection) Delete(query string, bindings []interface{}) int64 {
+
+	return c.affectingStatement(query, bindings)
+}
+
+func (c *Connection) statement(query string, bindings []interface{}) sql.Result {
 
 	statement, err := c.pdo.Prepare(query)
 	prepareError(err)
@@ -55,9 +68,7 @@ func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
 	return res
 }
 
-func (c *Connection) Update(query string, bindings []interface{}) int64 {
-
-	fmt.Println("== UPDATE ==", query)
+func (c *Connection) affectingStatement(query string, bindings []interface{}) int64 {
 
 	statement, err := c.pdo.Prepare(query)
 	prepareError(err)

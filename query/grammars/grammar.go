@@ -315,6 +315,16 @@ func (g *Grammar) CompileUpdate(b contracts.QueryBuilder, values map[string]inte
 	return strings.Trim(q, " ")
 }
 
+func (g *Grammar) CompileDelete(b contracts.QueryBuilder) string {
+
+	builder := b.(*query.Builder)
+	table := g.WrapTable(builder.Table)
+
+	wheres := g.compileWhere(builder)
+
+	return strings.Trim("delete from " + table + " " + wheres, " ")
+}
+
 func (g *Grammar) columnize(columns []string) string {
 
 	for i, v := range columns {
