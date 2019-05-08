@@ -10,6 +10,10 @@ type Grammar interface {
 
 	CompileDelete(b QueryBuilder) string
 
+	CompileSavepoint(name string) string
+
+	CompileSavepointRollback(name string) string
+
 	Wrap(v string) string
 
 	PrepareBindingsForUpdate(b QueryBuilder, bindings map[string][]interface{}, values map[string]interface{}) []interface{}

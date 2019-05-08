@@ -325,6 +325,16 @@ func (g *Grammar) CompileDelete(b contracts.QueryBuilder) string {
 	return strings.Trim("delete from " + table + " " + wheres, " ")
 }
 
+func (g *Grammar) CompileSavepoint(name string) string {
+
+	return "SAVEPOINT " + name
+}
+
+func (g *Grammar) CompileSavepointRollback(name string) string {
+
+	return "ROLLBACK TO SAVEPOINT " + name
+}
+
 func (g *Grammar) columnize(columns []string) string {
 
 	for i, v := range columns {

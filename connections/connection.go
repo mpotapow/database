@@ -5,7 +5,6 @@ import (
 	"database/kernel/config"
 	"database/query"
 	"database/sql"
-	"fmt"
 )
 
 type Connection struct {
@@ -23,6 +22,16 @@ func NewConnection(pdo *sql.DB, config *config.DatabaseDriver, grammar contracts
 	}
 }
 
+func (c *Connection) GetPDO() *sql.DB {
+
+	return c.pdo
+}
+
+func (c *Connection) GetGrammar() contracts.Grammar {
+
+	return c.queryGrammar
+}
+
 func (c *Connection) Query() contracts.QueryBuilder {
 
 	return query.NewBuilder(c, c.queryGrammar)
@@ -30,35 +39,32 @@ func (c *Connection) Query() contracts.QueryBuilder {
 
 func (c *Connection) Select(query string, bindings []interface{}) (*sql.Rows, error) {
 
-	fmt.Println("== SELECT ==", query)
+	return c.query(c.prepareQuery(query), bindings)
+}
 
-	statement, err := c.pdo.Prepare(query)
-	prepareError(err)
+func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
+
+	return c.statement(c.prepareQuery(query), bindings)
+}
+
+func (c *Connection) Update(query string, bindings []interface{}) int64 {
+
+	return c.affectingStatement(c.prepareQuery(query), bindings)
+}
+
+func (c *Connection) Delete(query string, bindings []interface{}) int64 {
+
+	return c.affectingStatement(c.prepareQuery(query), bindings)
+}
+
+func (c *Connection) query(statement *sql.Stmt, bindings []interface{}) (*sql.Rows, error) {
 
 	defer statement.Close()
 
 	return statement.Query(bindings...)
 }
 
-func (c *Connection) Insert(query string, bindings []interface{}) sql.Result {
-
-	return c.statement(query, bindings)
-}
-
-func (c *Connection) Update(query string, bindings []interface{}) int64 {
-
-	return c.affectingStatement(query, bindings)
-}
-
-func (c *Connection) Delete(query string, bindings []interface{}) int64 {
-
-	return c.affectingStatement(query, bindings)
-}
-
-func (c *Connection) statement(query string, bindings []interface{}) sql.Result {
-
-	statement, err := c.pdo.Prepare(query)
-	prepareError(err)
+func (c *Connection) statement(statement *sql.Stmt, bindings []interface{}) sql.Result {
 
 	defer statement.Close()
 
@@ -68,10 +74,7 @@ func (c *Connection) statement(query string, bindings []interface{}) sql.Result 
 	return res
 }
 
-func (c *Connection) affectingStatement(query string, bindings []interface{}) int64 {
-
-	statement, err := c.pdo.Prepare(query)
-	prepareError(err)
+func (c *Connection) affectingStatement(statement *sql.Stmt, bindings []interface{}) int64 {
 
 	defer statement.Close()
 
@@ -84,6 +87,24 @@ func (c *Connection) affectingStatement(query string, bindings []interface{}) in
 	}
 
 	return cont
+}
+
+func (c *Connection) prepareQuery(query string) *sql.Stmt {
+
+	statement, err := c.pdo.Prepare(query)
+	prepareError(err)
+
+	return statement
+}
+
+func (c *Connection) Transaction(args ...interface{}) contracts.TransactionConnection {
+
+	if len(args) > 0 {
+		tc := NewTransactionConnection(c)
+		return tc.Transaction(args...)
+	}
+
+	return NewTransactionConnection(c)
 }
 
 func prepareError(err error) {

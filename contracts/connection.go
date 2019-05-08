@@ -2,7 +2,16 @@ package contracts
 
 import "database/sql"
 
+type TransactionConnection interface {
+	Connection
+	Transactable
+}
+
 type Connection interface {
+
+	GetPDO() *sql.DB
+
+	GetGrammar() Grammar
 
 	Query() QueryBuilder
 
@@ -13,4 +22,6 @@ type Connection interface {
 	Update(query string, bindings []interface{}) int64
 
 	Delete(query string, bindings []interface{}) int64
+
+	Transaction(args ...interface{}) TransactionConnection
 }

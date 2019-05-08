@@ -45,8 +45,10 @@ is under development...
 ## Deletes
 is under development...
 
+## Transactions
+is under development..
+
 ## Features
-- Transaction
 - Locking
 - Support json
 - Database schema
