@@ -37,6 +37,11 @@ func (c *Connection) Query() contracts.QueryBuilder {
 	return query.NewBuilder(c, c.queryGrammar)
 }
 
+func (c *Connection) Table(table string) contracts.QueryBuilder {
+
+	return c.Query().From(table)
+}
+
 func (c *Connection) Select(query string, bindings []interface{}) (*sql.Rows, error) {
 
 	return c.query(c.prepareQuery(query), bindings)

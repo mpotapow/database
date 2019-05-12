@@ -29,6 +29,11 @@ func (tc *TransactionConnection) Query() contracts.QueryBuilder {
 	return query.NewBuilder(tc, tc.GetGrammar())
 }
 
+func (tc *TransactionConnection) Table(table string) contracts.QueryBuilder {
+
+	return tc.Query().From(table)
+}
+
 func (tc *TransactionConnection) Select(query string, bindings []interface{}) (*sql.Rows, error) {
 
 	return tc.query(tc.prepareQuery(query), bindings)

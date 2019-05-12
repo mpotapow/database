@@ -15,6 +15,8 @@ type Connection interface {
 
 	Query() QueryBuilder
 
+	Table(table string) QueryBuilder
+
 	Select(query string, bindings []interface{}) (*sql.Rows, error)
 
 	Insert(query string, bindings []interface{}) sql.Result

@@ -1,4 +1,4 @@
-# go-sql-builder
+# go database
 Beautiful sql query builder. Inspired by laravel
 
 ## Configurate
