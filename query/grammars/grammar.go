@@ -458,3 +458,8 @@ func (g *Grammar) PrepareBindingsForUpdate(
 
 	return res
 }
+
+func (g *Grammar) PrepareBindingsForDelete(b contracts.QueryBuilder, bindings map[string][]interface{}) []interface{} {
+
+	return b.(*query.Builder).GetBindingsForSql()
+}

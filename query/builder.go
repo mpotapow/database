@@ -694,7 +694,9 @@ func (b *Builder) Update(values map[string]interface{}) int64 {
 
 func (b *Builder) Delete() int64 {
 
-	return b.connection.Delete(b.grammar.CompileDelete(b), b.GetBindingsForSql())
+	query := b.grammar.CompileDelete(b)
+
+	return b.connection.Delete(query, b.grammar.PrepareBindingsForDelete(b, b.bindings))
 }
 
 func (b *Builder) Truncate() {
