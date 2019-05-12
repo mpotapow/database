@@ -1,52 +1,9 @@
 # go database
-Beautiful sql query builder. Inspired by laravel
+Beautiful sql query builder. Inspired by laravel.  
+For more information see [documentation](https://github.com/mpotapow/database/wiki).
 
-## Configurate
-is under development...
-````json
-{
-  "default": "mysql",
-  "connections": {
-    "mysql": {
-      "driver": "mysql",
-      "host": "localhost",
-      "port": "3306",
-      "database": "example",
-      "password": "guest",
-      "username": "guest",
-
-      "strict": true,
-      "timezone": "",
-      "charset": "utf8mb4",
-      "collation": "utf8mb4_unicode_ci"
-    }
-  }
-}
-````
-
-## Select
-is under development...
-
-## Joins
-is under development...
-
-## Where Clauses
-is under development...
-
-## Ordering, Grouping, Limit, & Offset
-is under development...
-
-## Inserts
-is under development...
-
-## Updates
-is under development...
-
-## Deletes
-is under development...
-
-## Transactions
-is under development..
+## Support database drivers
+- MySQL
 
 ## Features
 - Locking
