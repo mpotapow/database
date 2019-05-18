@@ -6,7 +6,7 @@ import (
 )
 
 type JoinClause struct {
-	contracts.QueryBuilder
+	*Builder
 	parent *Builder
 	joinType string
 }
@@ -14,7 +14,7 @@ type JoinClause struct {
 func NewJoinClause(builder *Builder, joinType string, table interface{}) contracts.JoinQueryBuilder {
 
 	JoinClause := &JoinClause{
-		builder.newQuery(),
+		builder.newQuery().(*Builder),
 		builder,
 		joinType,
 	}
@@ -23,8 +23,7 @@ func NewJoinClause(builder *Builder, joinType string, table interface{}) contrac
 		case string:
 			JoinClause.From(v)
 		case types.ExpressionType:
-			qb := JoinClause.QueryBuilder.(*Builder)
-			qb.Table = types.NewFromRawString(v.ValueToString())
+			JoinClause.Table = types.NewFromRawString(v.ValueToString())
 	}
 
 	return JoinClause
@@ -35,20 +34,14 @@ func (j *JoinClause) GetType() string {
 	return j.joinType
 }
 
-func (j *JoinClause) GetQueryBuilder() contracts.QueryBuilder {
-
-	return j.QueryBuilder
-}
-
 func (j *JoinClause) buildOn(args []interface{}, where string) contracts.JoinQueryBuilder {
 
-	qb := j.GetQueryBuilder().(*Builder)
-	if qb.isCallback(args[0]) {
+	if j.isCallback(args[0]) {
 
-		qb.whereNested(args[0].(types.WhereCallback), where)
+		j.whereNested(args[0].(types.WhereCallback), where)
 	} else {
 
-		qb.buildWhereColumn(args, where)
+		j.buildWhereColumn(args, where)
 	}
 
 	return j
@@ -71,6 +64,5 @@ func (j *JoinClause) forSubQuery() contracts.QueryBuilder {
 
 func (j *JoinClause) newQuery() contracts.JoinQueryBuilder {
 
-	qb := j.GetQueryBuilder().(*Builder)
-	return NewJoinClause(j.parent, j.joinType, qb.Table.ToString())
+	return NewJoinClause(j.parent, j.joinType, j.Table.ToString())
 }

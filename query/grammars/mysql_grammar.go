@@ -29,7 +29,7 @@ func (g *MysqlGrammar) CompileUpdate(b contracts.QueryBuilder, values map[string
 
 	joins := ""
 	if len(builder.Joins) > 0 {
-		joins = " " + g.compileJoins(builder)
+		joins = " " + g.compileJoins(b, builder)
 	}
 
 	var columns []string
@@ -37,16 +37,16 @@ func (g *MysqlGrammar) CompileUpdate(b contracts.QueryBuilder, values map[string
 		columns = append(columns, g.Wrap(col)+" = "+g.parametrizeSymbol)
 	}
 
-	wheres := g.compileWhere(builder)
+	wheres := g.compileWhere(b, builder)
 
 	q := "update " + table + joins + " set " + strings.Join(columns, ", ") + " " + wheres
 
 	if len(builder.Orders) > 0 {
-		q += " " + g.compileOrders(builder)
+		q += " " + g.compileOrders(b, builder)
 	}
 
 	if builder.RowLimit > 0 {
-		q += " " + g.compileLimit(builder)
+		q += " " + g.compileLimit(b, builder)
 	}
 
 	return strings.Trim(q, " ")
@@ -57,12 +57,12 @@ func (g *MysqlGrammar) CompileDelete(b contracts.QueryBuilder) string {
 	builder := b.(*query.Builder)
 	table := g.WrapTable(builder.Table)
 
-	wheres := g.compileWhere(builder)
+	wheres := g.compileWhere(b, builder)
 
 	if len(builder.Joins) > 0 {
-		return g.compileDeleteWithJoins(builder, table, wheres)
+		return g.compileDeleteWithJoins(b, builder, table, wheres)
 	} else {
-		return g.compileDeleteWithoutJoins(builder, table, wheres)
+		return g.compileDeleteWithoutJoins(b, builder, table, wheres)
 	}
 }
 
@@ -79,23 +79,27 @@ func (g *MysqlGrammar) PrepareBindingsForDelete(b contracts.QueryBuilder, bindin
 	return res
 }
 
-func (g *MysqlGrammar) compileDeleteWithJoins(builder *query.Builder, table string, wheres string) string {
+func (g *MysqlGrammar) compileDeleteWithJoins(
+	b contracts.QueryBuilder, builder *query.Builder, table string, wheres string,
+) string {
 
-	joins := " " + g.compileJoins(builder)
+	joins := " " + g.compileJoins(b, builder)
 
-	return strings.Trim("delete from " + table + joins + " " + wheres, " ")
+	return strings.Trim("delete from "+table+joins+" "+wheres, " ")
 }
 
-func (g *MysqlGrammar) compileDeleteWithoutJoins(builder *query.Builder, table string, wheres string) string {
+func (g *MysqlGrammar) compileDeleteWithoutJoins(
+	b contracts.QueryBuilder, builder *query.Builder, table string, wheres string,
+) string {
 
-	q := strings.Trim("delete from " + table + " " + wheres, " ")
+	q := strings.Trim("delete from "+table+" "+wheres, " ")
 
 	if len(builder.Orders) > 0 {
-		q += " " + g.compileOrders(builder)
+		q += " " + g.compileOrders(b, builder)
 	}
 
 	if builder.RowLimit > 0 {
-		q += " " + g.compileLimit(builder)
+		q += " " + g.compileLimit(b, builder)
 	}
 
 	return q

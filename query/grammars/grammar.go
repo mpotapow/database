@@ -58,17 +58,17 @@ func (g *Grammar) CompileSelect(b contracts.QueryBuilder) string {
 		queryBuilder.Select("*")
 	}
 
-	return g.compileComponents(queryBuilder)
+	return g.compileComponents(b, queryBuilder)
 }
 
-func (g *Grammar) compileComponents(queryBuilder *query.Builder) string {
+func (g *Grammar) compileComponents(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	var res = make([]string, 0)
 	var l = len(g.selectComponents)
 
 	for i := 0; i < l; i++ {
 		var f = g.selectComponents[i]
-		var part = f.(func(*query.Builder) string)(queryBuilder)
+		var part = f.(func(contracts.QueryBuilder, *query.Builder) string)(b, queryBuilder)
 		res = append(res, part)
 	}
 
@@ -79,7 +79,7 @@ func (g *Grammar) compileComponents(queryBuilder *query.Builder) string {
 	return strings.Trim(strings.Join(res, " "), " ")
 }
 
-func (g *Grammar) compileAggregate(queryBuilder *query.Builder) string {
+func (g *Grammar) compileAggregate(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if queryBuilder.Aggregate == nil {
 		return ""
@@ -91,7 +91,7 @@ func (g *Grammar) compileAggregate(queryBuilder *query.Builder) string {
 	)
 }
 
-func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
+func (g *Grammar) compileColumns(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if queryBuilder.Aggregate != nil {
 		return ""
@@ -112,35 +112,34 @@ func (g *Grammar) compileColumns(queryBuilder *query.Builder) string {
 	return "select " + strings.Join(res, ", ")
 }
 
-func (g *Grammar) compileFrom(queryBuilder *query.Builder) string {
+func (g *Grammar) compileFrom(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	return "from " + g.WrapTable(queryBuilder.Table)
 }
 
-func (g *Grammar) compileJoins(queryBuilder *query.Builder) string {
+func (g *Grammar) compileJoins(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	var res []string
 	for _, j := range queryBuilder.Joins {
 
-		qb := j.(*query.JoinClause).GetQueryBuilder()
-		builder := qb.(*query.Builder)
+		qb := j.(*query.JoinClause)
 
-		table := g.WrapTable(builder.Table)
+		table := g.WrapTable(qb.Table)
 
 		nestedJoins := ""
-		if len(builder.Joins) != 0 {
+		if len(qb.Joins) != 0 {
 
-			nestedJoins = " " + g.compileJoins(queryBuilder)
+			nestedJoins = " " + g.compileJoins(b, queryBuilder)
 		}
 
-		q := j.GetType() + " join " + table + nestedJoins + " " + g.compileWhere(builder)
+		q := j.GetType() + " join " + table + nestedJoins + " " + g.compileWhere(qb, qb.Builder)
 		res = append(res, strings.Trim(q, " "))
 	}
 
 	return strings.Join(res, " ")
 }
 
-func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
+func (g *Grammar) compileWhere(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if len(queryBuilder.Wheres) <= 0 {
 		return ""
@@ -184,7 +183,7 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 			break
 		case *types.WhereNested:
 			builder := g.getQueryByWhere(w)
-			str := g.compileWhere(builder)
+			str := g.compileWhere(b, builder)
 			res = append(res, w.GetLogic()+" ("+str[6:]+")")
 			break
 		case *types.WhereSub:
@@ -195,10 +194,17 @@ func (g *Grammar) compileWhere(queryBuilder *query.Builder) string {
 		}
 	}
 
-	return "where " + g.removeLeadingBoolean(strings.Join(res, " "))
+	conjunction := "where"
+
+	switch b.(type) {
+	case *query.JoinClause:
+		conjunction = "on"
+	}
+
+	return conjunction + " " + g.removeLeadingBoolean(strings.Join(res, " "))
 }
 
-func (g *Grammar) compileGroups(queryBuilder *query.Builder) string {
+func (g *Grammar) compileGroups(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if len(queryBuilder.Groups) <= 0 {
 		return ""
@@ -207,7 +213,7 @@ func (g *Grammar) compileGroups(queryBuilder *query.Builder) string {
 	return "group by " + g.columnize(queryBuilder.Groups)
 }
 
-func (g *Grammar) compileHavings(queryBuilder *query.Builder) string {
+func (g *Grammar) compileHavings(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if len(queryBuilder.Havings) <= 0 {
 		return ""
@@ -230,7 +236,7 @@ func (g *Grammar) compileHavings(queryBuilder *query.Builder) string {
 	return "having " + g.removeLeadingBoolean(strings.Join(res, " "))
 }
 
-func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {
+func (g *Grammar) compileOrders(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if len(queryBuilder.Orders) <= 0 {
 		return ""
@@ -249,7 +255,7 @@ func (g *Grammar) compileOrders(queryBuilder *query.Builder) string {
 	return "order by " + strings.Join(orders, ", ")
 }
 
-func (g *Grammar) compileLimit(queryBuilder *query.Builder) string {
+func (g *Grammar) compileLimit(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if queryBuilder.RowLimit <= 0 {
 		return ""
@@ -258,7 +264,7 @@ func (g *Grammar) compileLimit(queryBuilder *query.Builder) string {
 	return fmt.Sprintf("limit %v", queryBuilder.RowLimit)
 }
 
-func (g *Grammar) compileOffset(queryBuilder *query.Builder) string {
+func (g *Grammar) compileOffset(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	if queryBuilder.RowOffset <= 0 {
 		return ""
@@ -267,12 +273,12 @@ func (g *Grammar) compileOffset(queryBuilder *query.Builder) string {
 	return fmt.Sprintf("offset %v", queryBuilder.RowOffset)
 }
 
-func (g *Grammar) compileUnions(queryBuilder *query.Builder) string {
+func (g *Grammar) compileUnions(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	return ""
 }
 
-func (g *Grammar) compileLock(queryBuilder *query.Builder) string {
+func (g *Grammar) compileLock(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
 	return ""
 }
@@ -300,7 +306,7 @@ func (g *Grammar) CompileUpdate(b contracts.QueryBuilder, values map[string]inte
 
 	joins := ""
 	if len(builder.Joins) > 0 {
-		joins = " " + g.compileJoins(builder)
+		joins = " " + g.compileJoins(b, builder)
 	}
 
 	var columns []string
@@ -308,7 +314,7 @@ func (g *Grammar) CompileUpdate(b contracts.QueryBuilder, values map[string]inte
 		columns = append(columns, g.Wrap(col)+" = "+g.parametrizeSymbol)
 	}
 
-	wheres := g.compileWhere(builder)
+	wheres := g.compileWhere(b, builder)
 
 	q := "update " + table + joins + " set " + strings.Join(columns, ", ") + " " + wheres
 
@@ -320,7 +326,7 @@ func (g *Grammar) CompileDelete(b contracts.QueryBuilder) string {
 	builder := b.(*query.Builder)
 	table := g.WrapTable(builder.Table)
 
-	wheres := g.compileWhere(builder)
+	wheres := g.compileWhere(b, builder)
 
 	return strings.Trim("delete from " + table + " " + wheres, " ")
 }

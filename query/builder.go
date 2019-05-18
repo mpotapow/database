@@ -309,8 +309,7 @@ func (b *Builder) buildJoin(table interface{}, args []interface{}, joinType stri
 		b.Joins = append(b.Joins, join)
 	}
 
-	qb := join.(*JoinClause).GetQueryBuilder()
-	for _, v := range qb.(*Builder).GetBindingsForSql() {
+	for _, v := range join.GetBindingsForSql() {
 		b.addBinding(v, "join")
 	}
 

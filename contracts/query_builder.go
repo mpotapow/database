@@ -131,6 +131,8 @@ type QueryBuilder interface {
 	Update(values map[string]interface{}) int64
 
 	Delete() int64
+
+	GetBindingsForSql(except ...string) []interface{}
 }
 
 type JoinQueryBuilder interface {
