@@ -26,4 +26,6 @@ type Connection interface {
 	Delete(query string, bindings []interface{}) int64
 
 	Transaction(args ...interface{}) TransactionConnection
+
+	Statement(sql string, bindings []interface{}) sql.Result
 }

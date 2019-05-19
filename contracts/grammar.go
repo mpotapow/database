@@ -10,6 +10,8 @@ type Grammar interface {
 
 	CompileDelete(b QueryBuilder) string
 
+	CompileTruncate(b QueryBuilder) string
+
 	CompileSavepoint(name string) string
 
 	CompileSavepointRollback(name string) string

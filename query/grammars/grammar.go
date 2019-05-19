@@ -331,6 +331,14 @@ func (g *Grammar) CompileDelete(b contracts.QueryBuilder) string {
 	return strings.Trim("delete from " + table + " " + wheres, " ")
 }
 
+func (g *Grammar) CompileTruncate(b contracts.QueryBuilder) string {
+
+	builder := b.(*query.Builder)
+	table := g.WrapTable(builder.Table)
+
+	return "truncate " + table
+}
+
 func (g *Grammar) CompileSavepoint(name string) string {
 
 	return "SAVEPOINT " + name

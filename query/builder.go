@@ -698,8 +698,9 @@ func (b *Builder) Delete() int64 {
 	return b.connection.Delete(query, b.grammar.PrepareBindingsForDelete(b, b.bindings))
 }
 
-func (b *Builder) Truncate() {
-	// TODO
+func (b *Builder) Truncate() sql.Result {
+
+	return b.connection.Statement(b.grammar.CompileTruncate(b), []interface{}{})
 }
 
 func (b *Builder) runSelect() (*sql.Rows, error) {

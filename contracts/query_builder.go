@@ -132,6 +132,8 @@ type QueryBuilder interface {
 
 	Delete() int64
 
+	Truncate() sql.Result
+
 	GetBindingsForSql(except ...string) []interface{}
 }
 

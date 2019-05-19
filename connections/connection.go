@@ -62,6 +62,11 @@ func (c *Connection) Delete(query string, bindings []interface{}) int64 {
 	return c.affectingStatement(c.prepareQuery(query), bindings)
 }
 
+func (c *Connection) Statement(query string, bindings []interface{}) sql.Result {
+
+	return c.statement(c.prepareQuery(query), bindings)
+}
+
 func (c *Connection) query(statement *sql.Stmt, bindings []interface{}) (*sql.Rows, error) {
 
 	defer statement.Close()
