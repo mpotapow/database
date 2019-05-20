@@ -22,6 +22,8 @@ type Builder struct {
 	RowLimit  int
 	RowOffset int
 
+	Unions []types.UnionType
+
 	bindings map[string][]interface{}
 
 	grammar    contracts.Grammar
@@ -331,6 +333,20 @@ func (b *Builder) buildSubJoin(
 	return b.buildJoin(types.NewExpression(subSelect), args, joinType, where)
 }
 
+func (b *Builder) buildUnion(query interface{}, all bool) contracts.QueryBuilder {
+
+	if b.isCallback(query) {
+		newQuery := b.forSubQuery()
+		query.(types.WhereCallback)(newQuery)
+
+		query = newQuery.(*Builder)
+	}
+
+	b.Unions = append(b.Unions, types.NewUnion(query.(*Builder), all))
+
+	return b
+}
+
 func (b *Builder) Join(table string, args ...interface{}) contracts.QueryBuilder {
 
 	return b.buildJoin(table, args, "inner", false)
@@ -619,6 +635,16 @@ func (b *Builder) Offset(n int) contracts.QueryBuilder {
 	b.RowOffset = n
 
 	return b
+}
+
+func (b *Builder) Union(query interface{}) contracts.QueryBuilder {
+
+	return b.buildUnion(query, false)
+}
+
+func (b *Builder) UnionAll(query interface{}) contracts.QueryBuilder {
+
+	return b.buildUnion(query, true)
 }
 
 func (b *Builder) Get() (*sql.Rows, error) {

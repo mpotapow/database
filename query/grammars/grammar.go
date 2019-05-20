@@ -275,7 +275,22 @@ func (g *Grammar) compileOffset(b contracts.QueryBuilder, queryBuilder *query.Bu
 
 func (g *Grammar) compileUnions(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
 
-	return ""
+	sql := ""
+	for _, v := range queryBuilder.Unions {
+		sql += g.compileUnion(v)
+	}
+
+	return strings.TrimLeft(sql, " ")
+}
+
+func (g *Grammar) compileUnion(union types.UnionType) string {
+
+	conjunction := " union "
+	if union.IsAll() {
+		conjunction = " union all "
+	}
+
+	return conjunction + union.GetValue().ToSql()
 }
 
 func (g *Grammar) compileLock(b contracts.QueryBuilder, queryBuilder *query.Builder) string {
@@ -328,7 +343,7 @@ func (g *Grammar) CompileDelete(b contracts.QueryBuilder) string {
 
 	wheres := g.compileWhere(b, builder)
 
-	return strings.Trim("delete from " + table + " " + wheres, " ")
+	return strings.Trim("delete from "+table+" "+wheres, " ")
 }
 
 func (g *Grammar) CompileTruncate(b contracts.QueryBuilder) string {

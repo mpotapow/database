@@ -116,6 +116,10 @@ type QueryBuilder interface {
 
 	OrderByRaw(sql string, bindings ...interface{}) QueryBuilder
 
+	Union(query interface{}) QueryBuilder
+
+	UnionAll(query interface{}) QueryBuilder
+
 	Count(column string) (*sql.Rows, error)
 
 	Min(column string) (*sql.Rows, error)
