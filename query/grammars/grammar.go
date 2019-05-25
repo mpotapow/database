@@ -280,6 +280,33 @@ func (g *Grammar) compileUnions(b contracts.QueryBuilder, queryBuilder *query.Bu
 		sql += g.compileUnion(v)
 	}
 
+	if len(queryBuilder.UnionOrders) > 0 {
+		orderTmp := queryBuilder.Orders
+		queryBuilder.Orders = queryBuilder.UnionOrders
+
+		sql += " " + g.compileOrders(b, queryBuilder)
+
+		queryBuilder.Orders = orderTmp
+	}
+
+	if queryBuilder.UnionLimit > 0 {
+		limitTmp := queryBuilder.RowLimit
+		queryBuilder.RowLimit = queryBuilder.UnionLimit
+
+		sql += " " + g.compileLimit(b, queryBuilder)
+
+		queryBuilder.RowLimit = limitTmp
+	}
+
+	if queryBuilder.UnionOffset > 0 {
+		offsetTmp := queryBuilder.RowOffset
+		queryBuilder.RowOffset = queryBuilder.UnionOffset
+
+		sql += " " + g.compileOffset(b, queryBuilder)
+
+		queryBuilder.RowOffset = offsetTmp
+	}
+
 	return strings.TrimLeft(sql, " ")
 }
 

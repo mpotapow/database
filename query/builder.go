@@ -22,6 +22,10 @@ type Builder struct {
 	RowLimit  int
 	RowOffset int
 
+	UnionLimit  int
+	UnionOffset int
+	UnionOrders []types.OrderType
+
 	Unions []types.UnionType
 
 	bindings map[string][]interface{}
@@ -283,7 +287,12 @@ func (b *Builder) buildHavingRaw(condition string, bindings []interface{}, logic
 func (b *Builder) buildOrderByRaw(sql string, binding []interface{}) contracts.QueryBuilder {
 
 	orderType := types.NewOrderRaw(sql)
-	b.Orders = append(b.Orders, orderType)
+
+	if len(b.Unions) > 0 {
+		b.UnionOrders = append(b.UnionOrders, orderType)
+	} else {
+		b.Orders = append(b.Orders, orderType)
+	}
 
 	for _, v := range binding {
 		b.addBinding(v, "order")
@@ -608,7 +617,11 @@ func (b *Builder) OrHavingRaw(condition string, bindings ...interface{}) contrac
 
 func (b *Builder) OrderBy(column string, direction string) contracts.QueryBuilder {
 
-	b.Orders = append(b.Orders, types.NewOrder(column, direction))
+	if len(b.Unions) > 0 {
+		b.UnionOrders = append(b.UnionOrders, types.NewOrder(column, direction))
+	} else {
+		b.Orders = append(b.Orders, types.NewOrder(column, direction))
+	}
 
 	return b
 }
@@ -625,14 +638,22 @@ func (b *Builder) OrderByRaw(sql string, bindings ...interface{}) contracts.Quer
 
 func (b *Builder) Limit(n int) contracts.QueryBuilder {
 
-	b.RowLimit = n
+	if len(b.Unions) > 0 {
+		b.UnionLimit = n
+	} else {
+		b.RowLimit = n
+	}
 
 	return b
 }
 
 func (b *Builder) Offset(n int) contracts.QueryBuilder {
 
-	b.RowOffset = n
+	if len(b.Unions) > 0 {
+		b.UnionOffset = n
+	} else {
+		b.RowOffset = n
+	}
 
 	return b
 }
